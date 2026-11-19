@@ -293,23 +293,6 @@ export function buildHall(q) {
   stage.add(sofa(-1.0), sofa(1.0));
   g.add(stage);
 
-  /* ---- the closing text: Thank you, floating in the middle of the aisle in front of the stage (no card) ---- */
-  const thanksTex = canvasTexture(1024, 760, (c, w, h) => {
-    const glow = c.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.62);
-    glow.addColorStop(0, 'rgba(253,247,232,.92)'); glow.addColorStop(0.55, 'rgba(253,247,232,.55)'); glow.addColorStop(1, 'rgba(253,247,232,0)');
-    c.fillStyle = glow; c.fillRect(0, 0, w, h);
-    c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.shadowColor = 'rgba(255,255,255,.9)'; c.shadowBlur = 18;
-    const fit = (text, start, family, maxW) => { let sz = start; c.font = `${sz}px ${family}`; while (c.measureText(text).width > maxW && sz > 20) { sz -= 4; c.font = `${sz}px ${family}`; } return sz; };
-    const SCRIPT = "Marelle, 'Segoe Script', cursive";
-    fit('Thank you', 250, SCRIPT, w * 0.84); c.fillStyle = '#c9707f'; c.fillText('Thank you', w / 2, h * 0.3);
-    const names = `${CONFIG.bride} & ${CONFIG.groom}`; fit(names, 150, SCRIPT, w * 0.84); c.fillStyle = '#2f6178'; c.fillText(names, w / 2, h * 0.56);
-    c.shadowBlur = 10; c.fillStyle = '#4d5646';
-    const msg = 'Terima kasih atas doa dan kehadiran Anda.'; fit(msg, 46, 'Roboto, system-ui, sans-serif', w * 0.86); c.fillText(msg, w / 2, h * 0.8);
-  });
-  const thanks = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0 * 760 / 1024), new THREE.MeshBasicMaterial({ map: thanksTex, transparent: true, depthWrite: false }));
-  thanks.position.set(0, 7.0, Z1 + 9); thanks.renderOrder = 2; g.add(thanks);
-
   // everything except the outer shell is "interior": index.js hides it until the camera gets near the hall
   const interior = new THREE.Group();
   [...g.children].forEach((ch) => interior.add(ch));
@@ -318,7 +301,6 @@ export function buildHall(q) {
   return {
     group: g,
     interior,
-    thanks,
     hotspots,
     lights,
     update(t, inside) { lights.forEach((l, i) => { l.intensity = inside * (11 + Math.sin(t * 2.3 + i * 2) * 0.8); }); },

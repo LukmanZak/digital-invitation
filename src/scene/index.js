@@ -48,9 +48,36 @@ export function createScene(canvas, quality, hooks = {}) {
   scene.add(world.group, castle.group, hall.group, garden.group, boards.glGroup, particles.object);
   const hotspots = [...hall.hotspots, ...garden.hotspots];
 
-  const posCurve = new THREE.CatmullRomCurve3(STOPS.map((s) => new THREE.Vector3(...s.pos)), false, 'centripetal');
-  const lookCurve = new THREE.CatmullRomCurve3(STOPS.map((s) => new THREE.Vector3(...s.look)), false, 'centripetal');
   const N = STOPS.length - 1;
+  let posCurve = null, lookCurve = null, curveSig = '';
+
+  /**
+   * Camera rests. Stops with a board are framed from the board itself: the camera stands on the board's normal, looking
+   * straight at its centre, at the distance where the board fills ~95% of the screen (width or height, whichever is
+   * the limit). So on a phone the board is not "seen from afar": it is zoomed in until it is the screen.
+   * Other stops keep the hand-placed pos / look from stops.js.
+   */
+  const FILL = 0.95;
+  function framing() {
+    const tn = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    return STOPS.map((st) => {
+      const id = st.boards && st.boards[0];
+      const it = id && boards.items.find((b) => b.id === id);
+      if (!it) return { pos: st.pos, look: st.look };
+      const d = BOARDS[id], c = d.pos;
+      const dist = Math.max(3.2, (d.w / 2 / FILL) / (tn * camera.aspect), (it.h / 2 / FILL) / tn);
+      return { pos: [c[0] + Math.sin(d.rotY) * dist, c[1], c[2] + Math.cos(d.rotY) * dist], look: [c[0], c[1], c[2]] };
+    });
+  }
+  function rebuildCurves(force) {
+    const sig = camera.aspect.toFixed(3) + '|' + camera.fov + '|' + boards.items.map((b) => b.h.toFixed(2)).join(',');
+    if (!force && sig === curveSig) return;
+    curveSig = sig;
+    rest = framing();
+    posCurve = new THREE.CatmullRomCurve3(rest.map((r) => new THREE.Vector3(...r.pos)), false, 'centripetal');
+    lookCurve = new THREE.CatmullRomCurve3(rest.map((r) => new THREE.Vector3(...r.look)), false, 'centripetal');
+  }
+  let rest = [];
 
   const interiorFog = new THREE.Color(0xf3e6cf), outdoorHemi = new THREE.Color(0xfff3e6), indoorHemi = new THREE.Color(0xffe6c4);
   const tmpP = new THREE.Vector3(), tmpL = new THREE.Vector3();
@@ -73,10 +100,12 @@ export function createScene(canvas, quality, hooks = {}) {
   css.render(boards.cssScene, camera);
   boards.relayout();
   boards.items.forEach((it) => { it.css.visible = false; });
+  rebuildCurves(true);
 
   /** s: fractional stop index. The camera follows the scroll curve only: no pointer parallax, so it stays steady. */
   function render(s, t) {
     state.s = s;
+    rebuildCurves();
     const u = Math.min(1, Math.max(0, s / N));
     posCurve.getPoint(u, tmpP); lookCurve.getPoint(u, tmpL);
     camera.position.copy(tmpP); camera.lookAt(tmpL);
@@ -97,7 +126,6 @@ export function createScene(canvas, quality, hooks = {}) {
     world.update(t, camera);
     castle.update(t, state.gate, state.door);
     hall.update(t, k);
-    hall.thanks.material.opacity = smoothstep(I_END + 0.25, I_THANKS - 0.15, s);        // the closing text appears at the last stop
     particles.update(t, camera, k);
     boards.update(s, camera.position);
     garden.setProgress(smoothstep(I_EXIT + 0.4, I_REENTER - 0.6, s));
@@ -142,7 +170,7 @@ export function createScene(canvas, quality, hooks = {}) {
       const d = BOARDS[id], w = d.w, h = it.h, c = new THREE.Vector3(...d.pos);
       const right = new THREE.Vector3(Math.cos(d.rotY), 0, -Math.sin(d.rotY));
       const pts = [c.clone()]; for (const [sx, sy] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) pts.push(c.clone().addScaledVector(right, sx * w * 0.45).add(new THREE.Vector3(0, sy * h * 0.45, 0)));
-      test('board:' + id, new THREE.Vector3(...st.pos), pts, (o) => o.userData && o.userData.allow);
+      test('board:' + id, new THREE.Vector3(...rest[STOPS.indexOf(st)].pos), pts, (o) => o.userData && o.userData.allow);
     }));
     // story signs
     hotspots.filter((hs) => hs.userData.kind === 'story').forEach((hs) => {

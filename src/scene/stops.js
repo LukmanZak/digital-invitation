@@ -47,7 +47,7 @@ export const STOPS = [
 
   // finally the middle: the stage and the big thank-you text
   { id: 'end',     h: 65,  pos: [0, 3.3, -101],     look: [0, 4.0, -120] },
-  { id: 'thanks',  h: 100, pos: [0, 4.3, -102.5],   look: [0, 6.7, -111] },
+  { id: 'thanks',  h: 100, pos: [0, 4.3, -103],     look: [0, 4.3, -112],   boards: ['thanks'] },
 ];
 
 /**
@@ -62,6 +62,7 @@ export const BOARDS = {
   count: { w: 3.4, pos: [-7.9, 4.4, -45],    rotY: Math.PI / 2,   mount: 'wall' },
   gift:  { w: 3.8, pos: [-7.9, 4.2, -51],    rotY: Math.PI / 2,   mount: 'wall' },
   rsvp:  { w: 3.8, pos: [7.9, 3.8, -81],     rotY: -Math.PI / 2,  mount: 'wall' },
+  thanks:{ w: 4.2, pos: [0, 4.4, -112],       rotY: 0,             mount: 'poles' },
   wish:  { w: 3.8, pos: [7.9, 3.9, -87],     rotY: -Math.PI / 2,  mount: 'wall' },
 };
 

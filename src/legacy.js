@@ -165,6 +165,9 @@ window.__CONFIG = __CFG;
   }
   tick(); setInterval(tick, 1000);
 
+  // closing board buttons
+  (function(){ var sv = $('#endSave'), tp = $('#endTop'); if (sv) sv.addEventListener('click', function(){ $('#cdSave').click(); }); if (tp) tp.addEventListener('click', function(){ window.scrollTo({ top: 0, behavior: 'auto' }); }); })();
+
   // "Simpan di kalender": download an .ics for the akad
   $('#cdSave').addEventListener('click', function(){
     var st = new Date(target), en = new Date(target + 3 * 3600 * 1000);

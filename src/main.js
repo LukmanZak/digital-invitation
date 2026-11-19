@@ -1,5 +1,6 @@
 import './legacy.css';
 import './boards.css';
+import './theme.css';
 import './style.css';
 import './legacy.js';                      // the original invitation behaviour (RSVP, countdown, gifts, sheets, toasts)
 import { createRail } from './rail.js';
@@ -84,6 +85,7 @@ async function boot() {
     const w = stage.clientWidth, h = stage.clientHeight;
     if (w === lastW && Math.abs(h - lastH) < 120) return;       // ignore mobile address-bar jitter
     lastW = w; lastH = h;
+    root.style.setProperty('--bmin', w / h < 0.8 ? Math.round(360 * h / w) + 'px' : '0px');   // phone: a board is one screen tall
     scene.setSize(w, h);
     scene.boards.relayout();
   };
