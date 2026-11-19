@@ -1,0 +1,72 @@
+/* The objects the invitation content hangs on. Every board is a plain rectangle (the WebGL "hole" is a rectangle too);
+   cloth, fringe, parchment and frames are drawn inside it. */
+.board{width:360px;position:relative;color:var(--ink);text-align:center}
+.board .sec{position:relative;margin:0;padding:38px 26px 44px;min-height:0;background:none;box-shadow:none;border-radius:0;
+  -webkit-backdrop-filter:none;backdrop-filter:none;display:block;z-index:auto}
+.board .wof{padding:34px 24px 36px;min-height:0;display:block}
+.board .wof .hero{width:min(240px,80%);margin:12px auto 14px}
+.board .bism .sub{font-size:19px}
+.board .greet .diag{height:290px;width:100%}
+.board .event .evt + .evt{margin-top:26px;padding-top:30px}
+.board .cdb{padding:30px 22px 34px}
+.board .cdb .cd{margin:0 auto}
+.board .thanks{padding-bottom:30px}
+.board .gift .gicon{width:72px;margin-bottom:10px}
+.board .gift .lead{margin-bottom:18px}
+.board .wishb{padding:34px 18px 34px}
+.board .wishb .ttl{margin-bottom:16px}
+.board .rsvp .rcard,.board .rsvp .live{max-width:none}
+.board .feed{height:300px}
+
+/* ---- cloth banner: gold rod on top, tassel fringe at the bottom ---- */
+.skin-banner{
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.22) 0 2px,transparent 2px 5px),
+    linear-gradient(180deg,#fdf7e8,#f6e9cf 70%,#f1dfbc);
+  box-shadow:inset 0 0 0 7px #fdf7e8,inset 0 0 0 9px #d9a24a,inset 0 0 0 12px #fdf7e8,inset 0 0 0 13px rgba(217,162,74,.55)}
+.skin-banner::before{content:"";position:absolute;left:0;right:0;top:0;height:16px;z-index:3;
+  background:linear-gradient(180deg,#f1cf82,#cf9a3d 55%,#a97a2c);box-shadow:0 3px 6px rgba(80,50,20,.3)}
+.skin-banner::after{content:"";position:absolute;left:0;right:0;bottom:0;height:24px;z-index:3;
+  background:repeating-linear-gradient(90deg,#d9a24a 0 3px,#f1dfbc 3px 8px);
+  -webkit-mask-image:linear-gradient(180deg,#000 40%,rgba(0,0,0,.7));mask-image:linear-gradient(180deg,#000 40%,rgba(0,0,0,.7))}
+
+/* ---- parchment scroll: rolled edges (shading) and a wax seal ---- */
+.skin-scroll{
+  background:
+    radial-gradient(ellipse 80% 40% at 18% 8%,rgba(255,255,255,.4),transparent 60%),
+    radial-gradient(ellipse 60% 30% at 85% 95%,rgba(150,105,50,.16),transparent 70%),
+    linear-gradient(180deg,#f4e4c0,#edd8aa 55%,#e7d09c);
+  box-shadow:inset 0 22px 22px -14px rgba(110,75,30,.45),inset 0 -22px 22px -14px rgba(110,75,30,.45),
+    inset 14px 0 18px -14px rgba(110,75,30,.25),inset -14px 0 18px -14px rgba(110,75,30,.25),inset 0 0 0 1px rgba(150,110,50,.4)}
+.skin-scroll::after{content:"";position:absolute;right:20px;bottom:14px;width:38px;height:38px;border-radius:50%;z-index:3;
+  background:radial-gradient(circle at 35% 30%,#ec9aa8,#c9707f 55%,#a4505e);
+  box-shadow:0 3px 6px rgba(90,30,40,.4),inset 0 0 0 4px rgba(255,255,255,.12),inset 0 0 0 8px rgba(0,0,0,.08)}
+
+/* ---- gold framed plaque ---- */
+.skin-plaque{
+  background:
+    radial-gradient(circle at 0 0,#d9a24a 0 9px,transparent 10px),radial-gradient(circle at 100% 0,#d9a24a 0 9px,transparent 10px),
+    radial-gradient(circle at 0 100%,#d9a24a 0 9px,transparent 10px),radial-gradient(circle at 100% 100%,#d9a24a 0 9px,transparent 10px),
+    linear-gradient(180deg,#fdf8ec,#f8efdb);
+  box-shadow:inset 0 0 0 6px #fdf8ec,inset 0 0 0 9px #d9a24a,inset 0 0 0 12px #fdf8ec,inset 0 0 0 13.5px rgba(217,162,74,.55)}
+
+/* the old section-level rules that belonged to full-width stacked sections */
+.board .sec > .bl{display:none}
+
+/* sizes inside a board are relative to the board (360px), never to the screen width */
+.board .wof .dt{width:100%;gap:8px}
+.board .wof .dow,.board .wof .mon{font-size:11px;letter-spacing:.12em}
+.board .wof .day{font-size:64px}
+.board .greet .diag{width:100%;max-width:312px}
+.board .greet .person .ph{width:112px;height:112px}
+.board .thanks .half{width:260px}
+.board .cover-icon{width:200px}
+
+/* ---- Assalamualaikum redesigned: greeting on top, two large round portraits side by side ---- */
+.board .greet{padding:34px 20px 38px}
+.board .greet .intro{font-size:14px;margin-bottom:20px}
+.board .greet .diag{position:relative;height:auto;width:100%;max-width:none;margin:0 auto;display:flex;justify-content:center;align-items:flex-start;gap:14px}
+.board .greet .person{position:relative;left:auto;right:auto;top:auto;bottom:auto;flex:1 1 0;max-width:150px;flex-direction:column;align-items:center;gap:10px}
+.board .greet .person.n b,.board .greet .person.l b{order:2;font-size:25px;color:var(--rose-d)}
+.board .greet .person .ph{width:128px;height:128px;border-radius:50%;object-fit:cover;background:#fdf8ec;filter:none;
+  box-shadow:0 0 0 4px #fdf8ec,0 0 0 7px #d9a24a,0 0 0 10px #fdf8ec,0 0 0 11.5px rgba(217,162,74,.55),0 14px 18px rgba(90,80,60,.22)}

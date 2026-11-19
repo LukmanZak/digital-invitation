@@ -1,0 +1,654 @@
+import anime from 'animejs/lib/anime.es.js';
+window.anime = anime;
+import { CONFIG as __CFG } from './config.js';
+import * as api from './api.js';
+window.__CONFIG = __CFG;
+(function(){
+  /* =========================================================
+     CONFIG: ganti data di sini (nama, tanggal, lokasi, foto)
+     ========================================================= */
+  var CONFIG = window.__CONFIG;
+
+  /* ---------- helpers ---------- */
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var hasAnime = typeof anime !== 'undefined';
+  var $ = function(s, c){ return (c || document).querySelector(s); };
+  var $$ = function(s, c){ return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
+  var doc = document.documentElement;
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+
+  /* ---------- fill config ---------- */
+  $('#akadTime').textContent = CONFIG.akad.time;
+  $('#akadPlace').innerHTML = CONFIG.akad.place.split('\n').map(escapeHtml).join('<br>');
+  $('#resepsiTime').textContent = CONFIG.resepsi.time;
+  $('#resepsiPlace').innerHTML = CONFIG.resepsi.place.split('\n').map(escapeHtml).join('<br>');
+  $('#imgNida').src = CONFIG.photos.nida;
+  $('#imgLukman').src = CONFIG.photos.lukman;
+  var guest = new URLSearchParams(location.search).get('to');
+  $('#guestName').textContent = (guest && guest.trim()) ? guest.trim().slice(0, 60) : CONFIG.guestDefault;
+  var guestCode = (new URLSearchParams(location.search).get('g') || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12);
+  var guestInfo = null;   // { name, max_guests, attending, guests } once Supabase answers
+  var canSave = api.enabled && !!guestCode;
+  if (canSave){
+    api.getGuest(guestCode).then(function(g){
+      if (!g) return;
+      guestInfo = g; guest = g.name;
+      $('#guestName').textContent = g.name;
+      document.dispatchEvent(new CustomEvent('guest-ready'));
+    }).catch(function(){ canSave = false; });
+  }
+
+  /* ---------- split titles into letters ---------- */
+  $$('.ttl.split').forEach(function(t){
+    var txt = t.textContent; t.textContent = '';
+    txt.split(' ').forEach(function(word, wi, arr){
+      var w = document.createElement('span'); w.className = 'wd';   // a word never breaks in the middle
+      word.split('').forEach(function(ch){
+        var s = document.createElement('span'); s.className = 'ch'; s.textContent = ch; w.appendChild(s);
+      });
+      t.appendChild(w);
+      if (wi < arr.length - 1) t.appendChild(document.createTextNode(' '));
+    });
+    t.setAttribute('aria-label', txt);
+  });
+
+  /* ---------- lock scroll until the gate is opened ---------- */
+  doc.classList.add('locked');
+  $('#openBtn').addEventListener('click', function(){
+    doc.classList.remove('locked');
+    var wofTrack = document.getElementById('tr-wof'); if (wofTrack) wofTrack.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'center'});
+    showToast('Selamat datang, terima kasih sudah hadir');
+    burstPetals(16);
+  });
+
+  /* ---------- toast ---------- */
+  var toast = $('#toast'), toastTimer = null;
+  function showToast(msg, withLink){
+    $('#toastMsg').textContent = msg;
+    $('#toastLink').hidden = !withLink;
+    toast.hidden = false;
+    requestAnimationFrame(function(){ toast.classList.add('show'); });
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5200);
+  }
+  function hideToast(){ toast.classList.remove('show'); }
+  $('#toastX').addEventListener('click', hideToast);
+  $('#toastLink').addEventListener('click', hideToast);
+
+  /* ---------- petals ---------- */
+  function burstPetals(n){
+    if (reduce) return;
+    for (var i = 0; i < n; i++){
+      var p = document.createElement('span');
+      p.className = 'petal';
+      p.style.left = (Math.random() * 100) + 'vw';
+      p.style.animationDuration = (5 + Math.random() * 4) + 's';
+      p.style.animationDelay = (-Math.random() * 2) + 's';
+      document.body.appendChild(p);
+      setTimeout(function(el){ return function(){ el.remove(); }; }(p), 9500);
+    }
+  }
+
+  /* ---------- countdown to akad ---------- */
+  var target = new Date(CONFIG.akad.at).getTime();
+  var pad2 = function(n){ return n < 10 ? '0' + n : String(n); };
+  var cdGrid = $('#cdGrid');
+  var cards = {};
+  [['d','Hari'],['h','Jam'],['m','Menit'],['s','Detik']].forEach(function(u){
+    var wrap = document.createElement('div');
+    wrap.className = 'fc ' + ({d:'teal',h:'mustard',m:'sage',s:'rose'})[u[0]];
+    wrap.innerHTML = '<div class="fc-card"><div class="h top"><span></span></div><div class="h bot"><span></span></div>' +
+      '<div class="h fl-top"><span></span></div><div class="h fl-bot"><span></span></div></div><div class="lbl">' + u[1] + '</div>';
+    cdGrid.appendChild(wrap);
+    var el = wrap.firstChild;
+    cards[u[0]] = { el: el, top: $('.top span', el), bot: $('.bot span', el), flt: $('.fl-top span', el), flb: $('.fl-bot span', el), cur: null, t: 0 };
+  });
+  function setCd(c, v){
+    if (c.cur === v) return;
+    if (c.cur === null || reduce){
+      c.top.textContent = c.bot.textContent = c.flt.textContent = c.flb.textContent = v;
+      c.cur = v; return;
+    }
+    c.top.textContent = v;
+    c.flt.textContent = c.cur;
+    c.flb.textContent = v;
+    c.el.classList.remove('flipping'); void c.el.offsetWidth; c.el.classList.add('flipping');
+    c.cur = v;
+    clearTimeout(c.t);
+    c.t = setTimeout(function(){ c.bot.textContent = c.cur; c.el.classList.remove('flipping'); }, 600);
+  }
+  function tick(){
+    var d = target - Date.now();
+    if (d <= 0){
+      setCd(cards.d, '00'); setCd(cards.h, '00'); setCd(cards.m, '00'); setCd(cards.s, '00');
+      return;
+    }
+    var s = Math.floor(d / 1000);
+    var days = Math.floor(s / 86400);
+    cards.d.el.parentNode.classList.toggle('three', days >= 100);   // 3 digits need a smaller font
+    setCd(cards.d, pad2(days));
+    setCd(cards.h, pad2(Math.floor(s % 86400 / 3600)));
+    setCd(cards.m, pad2(Math.floor(s % 3600 / 60)));
+    setCd(cards.s, pad2(s % 60));
+  }
+  tick(); setInterval(tick, 1000);
+
+  // "Simpan di kalender": download an .ics for the akad
+  $('#cdSave').addEventListener('click', function(){
+    var st = new Date(target), en = new Date(target + 3 * 3600 * 1000);
+    var f = function(x){ return x.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); };
+    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Undangan//ID', 'BEGIN:VEVENT',
+      'UID:' + target + '@undangan', 'DTSTAMP:' + f(new Date()), 'DTSTART:' + f(st), 'DTEND:' + f(en),
+      'SUMMARY:Pernikahan ' + CONFIG.bride + ' & ' + CONFIG.groom,
+      'LOCATION:' + CONFIG.akad.place.replace(/\n/g, ', '),
+      'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+    a.download = 'pernikahan-nida-lukman.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+    showToast('Tanggal pernikahan disimpan');
+  });
+
+  /* ---------- scroll: progress, parallax, velocity ---------- */
+  var bar = $('#bar');
+  var pcs = $$('.pc');
+  var sides = $$('.side');
+  var lastY = window.scrollY, vel = 0, ticking = false;
+
+  function frame(){
+    ticking = false;
+    var y = window.scrollY;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, Math.max(0, y / max)) : 0) + ')';
+
+    // velocity -> botanicals lean a little with the scroll, then settle
+    var dy = y - lastY; lastY = y;
+    vel = vel * 0.85 + dy * 0.15;
+    doc.style.setProperty('--vel', Math.max(-8, Math.min(8, vel * 0.12)).toFixed(2));
+
+    // each botanical drifts vertically at its own speed (parallax)
+    var vh = window.innerHeight;
+    pcs.forEach(function(p){
+      var host = p.parentElement.parentElement;
+      var r = host.getBoundingClientRect();
+      var mid = r.top + r.height / 2 - vh / 2;
+      var sp = parseFloat(p.dataset.speed || '0.1');
+      p.style.setProperty('--py', (-mid * sp).toFixed(1) + 'px');
+    });
+
+    // desktop side decor: scroll parallax
+    sides.forEach(function(s, i){
+      s.style.setProperty('--my', (y * (0.05 + i * 0.02) * (i % 2 ? -1 : 1)).toFixed(1) + 'px');
+    });
+
+  }
+  function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(frame); } }
+  window.addEventListener('scroll', onScroll, {passive: true});
+  window.addEventListener('resize', onScroll);
+
+  // mouse parallax on desktop side decor
+  if (!reduce) window.addEventListener('pointermove', function(e){
+    var nx = (e.clientX / window.innerWidth - 0.5) * 16;
+    var ny = (e.clientY / window.innerHeight - 0.5) * 12;
+    sides.forEach(function(s, i){
+      s.style.setProperty('--mx', (nx * (i % 2 ? -1 : 1)).toFixed(1) + 'px');
+    });
+  }, {passive: true});
+
+  frame();
+
+  /* ---------- reveal on scroll (anime.js) ---------- */
+  var rvEls = $$('.rv');
+  var ttlEls = $$('.ttl.split');
+  function reveal(el){
+      if (el.classList.contains('in')) return;
+      el.classList.add('in');
+      if (reduce || !hasAnime) return;
+
+      if (el.classList.contains('ttl')){
+        anime({ targets: el.querySelectorAll('.ch'), opacity: [0,1], translateY: [18,0], delay: anime.stagger(50), duration: 700, easing: 'easeOutCubic' });
+      } else if (el.classList.contains('person')){
+        anime({ targets: el, opacity: [0,1], translateX: el.classList.contains('n') ? [-30,0] : [30,0], duration: 900, easing: 'easeOutCubic' });
+      } else if (el.classList.contains('hero')){
+        // arch "opens" from the bottom; clip-path removed afterwards so the shadow isn't cut
+        anime({ targets: el, opacity: [0,1], scale: [0.94,1], clipPath: ['inset(100% 0% 0% 0%)','inset(0% 0% 0% 0%)'], duration: 1100, easing: 'easeOutCubic',
+          complete: function(){ el.style.clipPath = 'none'; } });
+      } else if (el.classList.contains('dt')){
+        anime({ targets: el, opacity: [0,1], translateY: [16,0], duration: 800, easing: 'easeOutQuad' });
+        var dn = $('#dayNum'), cnt = { v: 1 };
+        dn.textContent = '01';
+        anime({ targets: cnt, v: 29, round: 1, duration: 1400, delay: 300, easing: 'easeOutCubic',
+          update: function(){ dn.textContent = pad2(cnt.v); } });
+      } else if (el.classList.contains('gtabs') || el.classList.contains('gpanel') || el.classList.contains('rcard') || el.classList.contains('live') || el.classList.contains('icon') || el.classList.contains('date') || el.classList.contains('to') || el.classList.contains('guest')){
+        anime({ targets: el, opacity: [0,1], translateY: [16,0], duration: 800, easing: 'easeOutQuad' });
+      } else {
+        anime({ targets: el, opacity: [0,1], translateY: [22,0], duration: 900, easing: 'easeOutCubic' });
+      }
+  }
+  /* a board "arrives": its titles and blocks play their reveal once */
+  function revealBoard(id){
+    var b = document.getElementById('bd-' + id) || document.getElementById(id);
+    if (!b) return;
+    var list = [].slice.call(b.querySelectorAll('.rv, .ttl.split'));
+    list.forEach(function(el, i){ setTimeout(function(){ reveal(el); }, reduce ? 0 : i * 90); });
+  }
+
+  /* gentle breeze: every ~9s every botanical leans together (anime.js) */
+  function gust(){
+    if (reduce || !hasAnime) return;
+    anime({
+      targets: $$('.bl .sw img'),
+      rotate: [0, 2, -1, 0],
+      duration: 2600,
+      delay: anime.stagger(140),
+      easing: 'easeOutSine'
+    });
+  }
+  if (!reduce && hasAnime){
+    setTimeout(function loop(){ gust(); setTimeout(loop, 9000); }, 3500);
+    // icons float gently (only the .icon / .gicon images, not the reveal wrapper)
+    $$('.icon, .gicon').forEach(function(ic, i){
+      anime({ targets: ic, translateY: [-6,6], direction: 'alternate', loop: true, duration: 2600 + i * 300, easing: 'easeInOutSine' });
+    });
+    // the flowers fade in, then bloom (scale + a small turn) once the cover opens
+    anime({ targets: '.bl .pc', opacity: [0,1], delay: anime.stagger(120, {start: 400}), duration: 900, easing: 'easeOutQuad' });
+    anime({ targets: '.bl .sw img', scale: [0.85,1], rotate: [-6,0], delay: anime.stagger(120, {start: 400}), duration: 1400, easing: 'easeOutElastic(1,.7)' });
+  }
+
+  /* ---------- SHEETS (popups) ---------- */
+  var dlg = $('#sheet'), body = $('#sheetBody'), lastFocus = null;
+
+  function closeCloseBtn(){ return '<button class="x" type="button" aria-label="Tutup" data-close>×</button>'; }
+
+  function render(type, data){
+    data = data || {};
+    if (type === 'photo' || type === 'story'){
+      var src = data.img, cap = data.cap, text = data.text;
+      var list = type === 'story' ? CONFIG.story : CONFIG.gallery, nav = '';
+      if (typeof data.i === 'number' && list.length > 1){
+        nav = '<div class="actions nav"><button class="ibtn" type="button" data-nav="-1" data-kind="' + type + '" data-i="' + data.i + '" aria-label="Sebelumnya"><svg class="ic" aria-hidden="true"><use href="#i-left"/></svg></button>' +
+          '<span class="navn">' + (data.i + 1) + ' / ' + list.length + '</span>' +
+          '<button class="ibtn" type="button" data-nav="1" data-kind="' + type + '" data-i="' + data.i + '" aria-label="Berikutnya"><svg class="ic" aria-hidden="true"><use href="#i-right"/></svg></button></div>';
+      }
+      return closeCloseBtn() + '<img class="big" src="' + escapeHtml(src) + '" alt="' + escapeHtml(cap) +
+        '" style="object-position:' + escapeHtml(data.pos || '50% 50%') + ';object-fit:' + (data.fit === 'contain' ? 'contain' : 'cover') + '">' +
+        '<h3>' + escapeHtml(cap) + '</h3>' + (text ? '<p>' + escapeHtml(text) + '</p>' : '') + nav;
+    }
+    if (type === 'venue'){
+      var v = data.venue === 'resepsi' ? CONFIG.resepsi : CONFIG.akad;
+      var title = data.venue === 'resepsi' ? 'Resepsi' : 'Akad';
+      return closeCloseBtn() + '<h3>' + title + '</h3>' +
+        '<img class="big map" src="' + escapeHtml(CONFIG.map) + '" alt="Peta lokasi ' + escapeHtml(title) + '">' +
+        '<p>' + v.place.split('\n').map(escapeHtml).join('<br>') + '</p>' +
+        '<div class="actions"><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&amp;query=' + encodeURIComponent(v.q) + '">Buka di Google Maps</a></div>';
+    }
+    return '';
+  }
+
+  function openSheet(type, data){
+    lastFocus = document.activeElement;
+    body.innerHTML = render(type, data);
+    if (!dlg.open) dlg.showModal();
+    if (hasAnime && !reduce){
+      anime({ targets: dlg, opacity: [0,1], translateY: [24,0], scale: [0.96,1], duration: 480, easing: 'easeOutCubic' });
+      anime({ targets: body.children, opacity: [0,1], translateY: [10,0], delay: anime.stagger(70, {start: 110}), duration: 480, easing: 'easeOutQuad' });
+    }
+    var first = body.querySelector('input,textarea,button,a');
+    if (first) first.focus();
+  }
+  function openPhoto(kind, i){
+    var list = kind === 'story' ? CONFIG.story : CONFIG.gallery, it = list[i];
+    if (it) openSheet(kind === 'story' ? 'story' : 'photo', { img: it.img, pos: it.pos, cap: it.cap, text: it.text, fit: it.fit, i: i });
+  }
+  function closeSheet(){
+    if (dlg.open) dlg.close();
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  // delegated clicks
+  document.addEventListener('click', function(e){
+    var nv = e.target.closest('[data-nav]');
+    if (nv){
+      var lst = nv.dataset.kind === 'story' ? CONFIG.story : CONFIG.gallery;
+      var ni = (+nv.dataset.i + (+nv.dataset.nav) + lst.length) % lst.length, it = lst[ni];
+      body.innerHTML = render(nv.dataset.kind, { img: it.img, pos: it.pos, cap: it.cap, text: it.text, fit: it.fit, i: ni });
+      return;
+    }
+    var t = e.target.closest('[data-sheet], [data-copy], [data-close]');
+    if (!t) return;
+    if (t.hasAttribute('data-close')){ closeSheet(); return; }
+    if (t.hasAttribute('data-copy')){
+      copyText(t.dataset.copy);
+      if (hasAnime && !reduce) anime({ targets: t, scale: [1, 0.88, 1], duration: 320, easing: 'easeOutQuad' });
+      return;
+    }
+    var kind = t.dataset.sheet;
+    if (kind === 'story'){
+      var s = CONFIG.story[+t.dataset.i];
+      if (t.classList.contains('jr-node') && !reduce && hasAnime){
+        anime({ targets: t.querySelector('.jr-face'), scale: [1, 0.86, 1], duration: 380, easing: 'easeOutQuad' });
+      }
+      openSheet('story', { img: s.img, pos: s.pos, cap: s.cap, text: s.text, fit: s.fit, i: +t.dataset.i });
+    } else if (kind === 'photo'){
+      openPhoto('photo', +t.dataset.i);
+    } else if (kind === 'venue'){
+      openSheet('venue', { venue: t.dataset.venue });
+    } else {
+      openSheet(kind);
+    }
+  });
+
+  // close by backdrop click, and Esc via the cancel event
+  dlg.addEventListener('click', function(e){ if (e.target === dlg) closeSheet(); });
+  dlg.addEventListener('cancel', function(e){ e.preventDefault(); closeSheet(); });
+
+  /* ---------- copy helper (toast tells the truth about the result) ---------- */
+  function copyText(txt){
+    function fallback(){
+      var ta = document.createElement('textarea');
+      ta.value = txt; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try{ ok = document.execCommand('copy'); }catch(err){}
+      ta.remove();
+      showToast(ok ? 'Tersalin' : 'Tidak bisa menyalin, salin manual ya');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ showToast('Tersalin'); }, fallback);
+    } else fallback();
+  }
+
+  /* =========================================================
+     WEDDING GIFT: icon tabs, flip card (money), parcel label (goods)
+     ========================================================= */
+  (function(){
+    var G = CONFIG.gift;
+    $('#bankName').textContent = G.bank.name;
+    $('#bankNo').textContent = G.bank.no;
+    $('#bankAn').textContent = G.bank.an;
+    $('#bankCopy').dataset.copy = G.bank.no.replace(/\s/g, '');
+    $('#ewName').textContent = G.ewallet.name;
+    $('#ewNo').textContent = G.ewallet.no;
+    $('#ewAn').textContent = G.ewallet.an;
+    $('#ewCopy').dataset.copy = G.ewallet.no.replace(/\s/g, '');
+    $('#gName').textContent = G.address.name;
+    $('#gPhone').textContent = G.address.phone;
+    $('#gAddr').innerHTML = G.address.lines.map(escapeHtml).join('<br>');
+    $('#addrCopy').dataset.copy = [G.address.name, G.address.phone, G.address.lines.join(', ')].join('\n');
+    $('#addrMap').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(G.address.q);
+
+    var tabs = $$('.gtab'), pans = [$('#panMoney'), $('#panGift')], tabBar = $('#gTabs'), box = $('#pkgBox');
+    function playLid(){ box.classList.remove('open'); void box.offsetWidth; box.classList.add('open'); }
+    function selectTab(i, focus){
+      tabs.forEach(function(t, k){ t.setAttribute('aria-selected', k === i ? 'true' : 'false'); t.tabIndex = k === i ? 0 : -1; });
+      tabBar.dataset.i = i;
+      pans.forEach(function(p, k){ p.hidden = k !== i; });
+      if (hasAnime && !reduce) anime({ targets: pans[i], opacity: [0,1], translateX: [i ? 28 : -28, 0], duration: 520, easing: 'easeOutCubic' });
+      if (i === 1) playLid();
+      if (focus) tabs[i].focus();
+    }
+    tabs.forEach(function(t, k){
+      t.addEventListener('click', function(){ selectTab(k); });
+      t.addEventListener('keydown', function(e){
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){ e.preventDefault(); selectTab(k ? 0 : 1, true); }
+      });
+    });
+
+    var bcard = $('#bcard'), front = $('#bcFront'), back = $('#bcBack');
+    back.inert = true;
+    function flipCard(){
+      var f = !bcard.classList.contains('flip');
+      bcard.classList.toggle('flip', f);
+      front.inert = f; back.inert = !f;
+    }
+    bcard.addEventListener('click', function(e){ if (!e.target.closest('button')) flipCard(); });
+    $('#bFlip').addEventListener('click', flipCard);
+  })();
+
+  /* =========================================================
+     RSVP: name, two icon buttons, guest stepper, paper plane
+     ========================================================= */
+  (function(){
+    var rform = $('#rsvpForm'), rcard = $('#rcard'), rok = $('#rok'), gst = $('#gst'), gnum = $('#gNum');
+    var RSVP_KEY = 'wplan_rsvp';
+    var guests = 2;
+    if (guest && guest.trim()) $('#nm').value = guest.trim().slice(0, 60);
+
+    var maxG = 5;
+    function setGuests(n){
+      guests = Math.max(1, Math.min(maxG, n));
+      gnum.textContent = guests;
+      if (hasAnime && !reduce) anime({ targets: gnum, scale: [1.4, 1], duration: 380, easing: 'easeOutBack' });
+    }
+    $('#gMinus').addEventListener('click', function(){ setGuests(guests - 1); });
+    $('#gPlus').addEventListener('click', function(){ setGuests(guests + 1); });
+    $$('input[name=att]', rform).forEach(function(r){
+      r.addEventListener('change', function(){ gst.classList.toggle('off', rform.att.value === 'tidak'); });
+    });
+
+    function showDone(name, att, n, silent){
+      rform.hidden = true; rok.hidden = false;
+      $('#rokMsg').textContent = att === 'hadir'
+        ? 'Terima kasih, ' + name + '. Sampai jumpa di hari bahagia kami' + (n > 1 ? ' (' + n + ' tamu).' : '.')
+        : 'Terima kasih sudah memberi kabar, ' + name + '. Doa terbaik dari kami.';
+      if (!silent && hasAnime && !reduce){
+        anime({ targets: rok.querySelector('.big'), scale: [0.4, 1], duration: 900, easing: 'easeOutElastic(1,.6)' });
+        anime({ targets: rok.querySelector('.big path'), strokeDashoffset: [40, 0], duration: 600, delay: 250, easing: 'easeOutCubic' });
+        anime({ targets: [rok.querySelector('p'), rok.querySelector('.ibtn')], opacity: [0,1], translateY: [10,0], delay: anime.stagger(120, {start: 300}), duration: 500, easing: 'easeOutQuad' });
+      }
+    }
+    function showForm(){
+      rok.hidden = true; rform.hidden = false;
+      if (hasAnime) anime.set('#sendIc', { translateX: 0, translateY: 0, opacity: 1 });
+    }
+    $('#rUndo').addEventListener('click', showForm);
+    // the invitation link is personal: fill the name, cap the guest count, show an earlier answer
+    document.addEventListener('guest-ready', function(){
+      $('#nm').value = guestInfo.name;
+      maxG = Math.max(1, guestInfo.max_guests || 5);
+      setGuests(Math.min(guests, maxG));
+      if (guestInfo.attending !== null && guestInfo.attending !== undefined){
+        showDone(guestInfo.name, guestInfo.attending ? 'hadir' : 'tidak', guestInfo.guests, true);
+      }
+    });
+
+    rform.addEventListener('submit', function(e){
+      e.preventDefault();
+      var name = $('#nm').value.trim();
+      if (!name){
+        showToast('Isi nama dulu ya');
+        $('#nm').focus();
+        if (hasAnime && !reduce) anime({ targets: '.nmf', translateX: [0,-8,8,-5,5,0], duration: 420, easing: 'easeOutQuad' });
+        return;
+      }
+      if (rform.hp && rform.hp.value) return;   // honeypot: bots fill hidden fields
+      var att = rform.att.value, n = att === 'hadir' ? guests : 0;
+      function finish(){ showDone(name, att, n); burstPetals(16); }
+      function fly(){
+        if (hasAnime && !reduce){
+          anime({ targets: '#sendIc', translateX: 70, translateY: -70, opacity: 0, duration: 520, easing: 'easeInCubic', complete: finish });
+        } else finish();
+      }
+      if (canSave){
+        var btn = rform.querySelector('.sendb'); btn.disabled = true;
+        api.submitRsvp(guestCode, att === 'hadir', n).then(function(r){ if (r){ name = r.name || name; n = r.guests; } fly(); },
+          function(err){ showToast(err.message); }).then(function(){ btn.disabled = false; });
+        return;
+      }
+      try{
+        var list = JSON.parse(localStorage.getItem(RSVP_KEY) || '[]');
+        list.push({ name: name, att: att, guests: n, at: Date.now() });
+        localStorage.setItem(RSVP_KEY, JSON.stringify(list));
+      }catch(err){}
+      fly();
+    });
+
+    // already answered in this browser: show the finished state (only for links that are not personal)
+    if (!canSave) try{
+      var prev = JSON.parse(localStorage.getItem(RSVP_KEY) || '[]').pop();
+      if (prev && prev.name) showDone(prev.name, prev.att, prev.guests, true);
+    }catch(err){}
+  })();
+
+  /* =========================================================
+     UCAPAN & DOA: TikTok-style live comments (dummy + your own)
+     ========================================================= */
+  (function(){
+    var DUMMY = [
+      ['Aisyah Putri', 'Barakallahu lakuma, semoga sakinah mawaddah warahmah ya Nida & Lukman 🤍'],
+      ['Pak Budi Santoso', 'Selamat menempuh hidup baru! Semoga langgeng sampai kakek nenek.'],
+      ['Dinda Maharani', 'Akhirnya sah juga!! Bahagia banget lihat kalian berdua 😭🤍'],
+      ['Rizky Pratama', 'Selamat bro Lukman! Semoga jadi imam yang baik. Aamiin.'],
+      ['Keluarga Hartono', 'Doa terbaik kami untuk kalian. Semoga rumah tangganya penuh berkah.'],
+      ['Salsabila', 'Nida cantik banget, nggak sabar datang ke acaranya!'],
+      ['Bu Ratna', 'Selamat ya, Nak. Semoga selalu rukun dan saling menyayangi.'],
+      ['Fajar Nugroho', 'Congrats Lukman & Nida! Semoga lancar sampai hari H 🎉'],
+      ['Tim Kantor Nida', 'Selamat ya Nida! Kami tunggu traktirannya 😄 Bahagia selalu.'],
+      ['Anisa Rahma', 'Semoga segera dikaruniai keturunan yang sholeh dan sholehah.'],
+      ['Dimas & Rani', 'Happy wedding! Kalian couple goals banget 🥹'],
+      ['Kak Yuli', 'Semoga cinta kalian makin kuat setiap harinya. Barakallah!'],
+      ['Teman SMA 2015', 'Dari satu bangku sekolah sampai pelaminan. Selamat ya, kalian luar biasa!'],
+      ['Ustadz Hasan', 'Semoga Allah mempersatukan kalian dalam kebaikan dunia dan akhirat. Aamiin.']
+    ];
+    var COLORS = ['#e39aa9', '#5b9bb5', '#d9a24a', '#c9707f', '#6f7f62', '#3f7f9a', '#b98424', '#b88a7a'];
+    var WISH_KEY = 'wplan_wishes';
+    var feed = $('#feed'), live = $('#live'), wCount = $('#wCount');
+    var total = 128, MAXMSG = 7, wIdx = 0, wTimer = null, wView = false;
+    var real = canSave, lastId = 0, pollTimer = null;
+
+    function colorFor(name){
+      var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+      return COLORS[h % COLORS.length];
+    }
+    function makeMsg(name, text, me, likes){
+      var d = document.createElement('div'); d.className = 'msg' + (me ? ' me' : '');
+      var av = document.createElement('span'); av.className = 'av'; av.style.setProperty('--c', colorFor(name)); av.textContent = name.charAt(0).toUpperCase();
+      var mb = document.createElement('div'); mb.className = 'mb';
+      var b = document.createElement('b'); b.textContent = me ? name + ' (kamu)' : name;
+      var p = document.createElement('p'); p.textContent = text;
+      mb.appendChild(b); mb.appendChild(p);
+      var lk = document.createElement('button'); lk.type = 'button'; lk.className = 'lk'; lk.setAttribute('aria-label', 'Suka'); lk.setAttribute('aria-pressed', 'false'); lk.dataset.n = likes;
+      lk.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><span>' + likes + '</span>';
+      d.appendChild(av); d.appendChild(mb); d.appendChild(lk);
+      return d;
+    }
+    function addMsg(name, text, me, seed){
+      var el = makeMsg(name, text, me, me ? 0 : Math.floor(Math.random() * 25));
+      feed.appendChild(el);
+      while (feed.children.length > MAXMSG) feed.removeChild(feed.firstChild);
+      if (!seed){ total++; wCount.textContent = total; }
+      if (!seed && hasAnime && !reduce){
+        var h = el.offsetHeight;
+        el.style.overflow = 'hidden';
+        anime({ targets: el, height: [0, h], opacity: [0, 1], translateY: [26, 0], duration: 650, easing: 'easeOutCubic',
+          complete: function(){ el.style.height = ''; el.style.overflow = ''; el.style.transform = ''; } });
+      }
+    }
+    function pollReal(){
+      clearTimeout(pollTimer);
+      if (!real || !wView || document.hidden) return;
+      api.listWishes(MAXMSG).then(function(rows){
+        (rows || []).slice().reverse().forEach(function(w){ if (w.id > lastId){ lastId = w.id; addMsg(w.name, w.message, w.name === (guestInfo && guestInfo.name), !lastSeeded); } });
+        lastSeeded = true;
+      }).catch(function(){}).then(function(){ pollTimer = setTimeout(pollReal, 20000); });
+      api.wishCount().then(function(n){ if (typeof n === 'number'){ total = n; wCount.textContent = n; } }).catch(function(){});
+    }
+    var lastSeeded = false;
+    function nextDummy(){ var m = DUMMY[wIdx % DUMMY.length]; wIdx++; addMsg(m[0], m[1], false); }
+    function wSchedule(){
+      clearTimeout(wTimer);
+      if (real){ if (wView) pollReal(); return; }
+      if (reduce || !wView || document.hidden) return;
+      wTimer = setTimeout(function(){ nextDummy(); wSchedule(); }, 2600 + Math.random() * 1600);
+    }
+
+    // initial feed: dummy first, then this browser's own recent wishes
+    if (real){ total = 0; wCount.textContent = '0'; }
+    else {
+      var seedN = reduce ? 6 : 4;
+      for (; wIdx < seedN; wIdx++) addMsg(DUMMY[wIdx][0], DUMMY[wIdx][1], false, true);
+      try{
+        JSON.parse(localStorage.getItem(WISH_KEY) || '[]').slice(-2).forEach(function(w){ if (w && w.name && w.msg) addMsg(w.name, w.msg, true, true); });
+      }catch(err){}
+    }
+
+    // the 3D layer tells us when the wishes board is in front of the camera
+    window.__wishActive = function(on){ wView = on; wSchedule(); };
+    document.addEventListener('visibilitychange', wSchedule);
+
+    function heartsFrom(btn){
+      if (reduce || !hasAnime) return;
+      var r = btn.getBoundingClientRect(), hr = live.getBoundingClientRect();
+      for (var i = 0; i < 4; i++){
+        var h = document.createElement('span'); h.className = 'hb';
+        h.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg>';
+        h.style.left = (r.left - hr.left + r.width / 2 - 8) + 'px';
+        h.style.top = (r.top - hr.top + r.height / 2 - 8) + 'px';
+        live.appendChild(h);
+        (function(el, k){
+          anime({ targets: el, translateY: -(40 + Math.random() * 40), translateX: (Math.random() - 0.5) * 44, opacity: [1, 0], scale: [0.6, 1.15],
+            duration: 900 + k * 110, easing: 'easeOutQuad', complete: function(){ el.remove(); } });
+        })(h, i);
+      }
+    }
+    feed.addEventListener('click', function(e){
+      var lk = e.target.closest('.lk'); if (!lk) return;
+      var on = !lk.classList.contains('on');
+      lk.classList.toggle('on', on); lk.setAttribute('aria-pressed', on ? 'true' : 'false');
+      var n = (+lk.dataset.n) + (on ? 1 : -1); lk.dataset.n = n; lk.lastChild.textContent = n;
+      if (on){
+        heartsFrom(lk);
+        if (hasAnime && !reduce) anime({ targets: lk.firstChild, scale: [1, 1.5, 1], duration: 420, easing: 'easeOutBack' });
+      }
+    });
+
+    $('#wishForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      var input = $('#wMsg'), msg = input.value.trim();
+      if (!msg) return;
+      if (real){
+        var sb = $('#wishForm').querySelector('button'); sb.disabled = true;
+        api.submitWish(guestCode, msg).then(function(w){
+          if (w && w.id > lastId){ lastId = w.id; addMsg(w.name, w.message, true); }
+          input.value = ''; burstPetals(8);
+        }, function(err){ showToast(err.message); }).then(function(){ sb.disabled = false; });
+        return;
+      }
+      var name = ($('#nm').value.trim() || (guest && guest.trim()) || 'Tamu').slice(0, 40);
+      addMsg(name, msg, true);
+      try{
+        var arr = JSON.parse(localStorage.getItem(WISH_KEY) || '[]'); arr.push({ name: name, msg: msg, at: Date.now() });
+        localStorage.setItem(WISH_KEY, JSON.stringify(arr.slice(-30)));
+      }catch(err){}
+      input.value = '';
+      burstPetals(8);
+      wSchedule();
+    });
+  })();
+
+  /* ---------- RSVP reminder toast, once, when the event board is seen ---------- */
+  var reminded = false;
+  function remindRsvp(){
+    if (reminded) return;
+    reminded = true;
+    setTimeout(function(){ showToast('Jangan lupa konfirmasi kehadiran Anda', true); }, 600);
+  }
+
+  /* ---------- hooks used by the 3D layer (main.js, scene/) ---------- */
+  window.__legacy = {
+    CONFIG: CONFIG,
+    openSheet: openSheet,
+    openPhoto: openPhoto,
+    showToast: showToast,
+    reveal: revealBoard,
+    /* the camera arrived at a stop (id) that has these boards */
+    activate: function(id){
+      revealBoard(id);
+      if (id === 'event') remindRsvp();
+    },
+    wishes: function(on){ if (window.__wishActive) window.__wishActive(on); }
+  };
+})();

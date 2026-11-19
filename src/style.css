@@ -1,0 +1,72 @@
+/* 3D stage. Loaded after legacy.css (original invitation styles) and boards.css (the objects the content hangs on). */
+html{background:#f4e3d6}
+body{background:#f4e3d6}
+
+/* layers: HTML boards (css3d) at the back, transparent WebGL canvas in front with "holes" where boards hang */
+#stage{position:fixed;left:0;top:0;width:100%;height:100vh;height:100lvh;z-index:0;pointer-events:none;overflow:hidden;
+  background:linear-gradient(180deg,#a9cde0 0,#f1e2dc 55%,#f9e0cc 100%)}
+#css3d{position:absolute !important;left:0;top:0;z-index:0;pointer-events:none}
+#gl{position:absolute;left:0;top:0;width:100%;height:100%;display:block;z-index:1;pointer-events:none}
+
+/* the scroll length lives in invisible tracks, one per camera stop */
+#tracks{position:relative;z-index:0;pointer-events:none}
+.track{pointer-events:none}
+
+/* cover: title card on the screen until the camera starts moving */
+.cover{position:fixed;left:0;right:0;top:0;bottom:0;z-index:5;min-height:0;background:none;padding:48px 26px 110px}
+.cover .eyebrow,.cover .to,.cover .foot{text-shadow:0 1px 10px rgba(255,255,255,.85)}
+.cover .nm{text-shadow:0 2px 18px rgba(255,255,255,.8)}
+.cover .icon{filter:drop-shadow(0 14px 18px rgba(90,80,60,.25))}
+
+/* loader */
+#loader{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fdf0ee,#f6e6dd);transition:opacity .8s ease,visibility .8s}
+#loader.done{opacity:0;visibility:hidden;pointer-events:none}
+.ld-in{text-align:center;color:var(--teal-dd)}
+.ld-nm{font-family:var(--title);font-size:34px;line-height:1.5}
+.ld-bar{width:180px;height:4px;margin:18px auto 12px;border-radius:99px;background:rgba(111,127,98,.2);overflow:hidden}
+.ld-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#5b9bb5,#e2b04a,#e39aa9);transition:width .25s ease}
+.ld-t{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--rose-d)}
+
+/* lightbox: previous / next */
+.sheet .actions.nav{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:14px}
+.sheet .navn{font-size:13px;letter-spacing:.12em;color:var(--sage-dd)}
+
+/* once the boards are in the 3D layer the store is empty; hide what is left (the no-WebGL-only block) */
+html.gl #board-store{display:none}
+
+/* ---------- no WebGL / old browsers: everything stacks as normal sections ---------- */
+.no-gl #stage{position:fixed;background:linear-gradient(180deg,#fdf0ee 0,#fbf3dc 18%,#fbeef0 36%,#eaf3f4 54%,#fbefdf 72%,#fbe9ec 100%)}
+.no-gl #board-store{display:block;position:relative;z-index:2;max-width:420px;margin:0 auto;padding:10px 14px 40px}
+.no-gl .cover{position:relative;min-height:100svh;z-index:2}
+.no-gl .board{width:auto !important;margin:0 0 22px;position:relative}
+.nogl-only{display:none}
+.no-gl .nogl-only{display:block}
+.nogl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 20px}
+.nogl-grid button{border:0;padding:0;border-radius:12px;overflow:hidden;aspect-ratio:1;background:#f3ead6;cursor:pointer}
+.nogl-grid img{width:100%;height:100%;object-fit:cover}
+.nogl-grid img.fit{object-fit:contain;padding:6px}
+
+@media (prefers-reduced-motion:reduce){#loader{transition:none}}
+
+#toast{width:max-content;max-width:calc(100vw - 28px)}
+
+/* cover must fit short screens (phones in landscape-ish browsers, address bar open) */
+.cover{padding:30px 26px 72px}
+.cover .icon{width:min(240px,34svh);margin:6px auto 10px}
+.cover .nm{font-size:clamp(28px,5.2svh,40px);margin:8px 0 8px}
+.cover .nm span{font-size:clamp(18px,3svh,22px)}
+.cover .guest{margin:2px 0 14px}
+.cover .foot{bottom:22px}
+.no-gl .cover{padding:60px 26px 110px}
+.no-gl .cover .icon{width:min(240px,62vw)}
+
+/* the global margin reset removed the browser's centering of modal dialogs */
+dialog{margin:auto}
+
+/* "pulls" the scroll to the reading position of each board / sign (soft: only when the finger stops near it) */
+html.gl{scroll-snap-type:y proximity}
+/* the snap target is a thin marker at the centre of the track (a track taller than the screen would never need to snap) */
+.track{position:relative}
+.snap-mark{position:absolute;left:0;top:50%;width:100%;height:2px;pointer-events:none}
+html.gl .snap-mark{scroll-snap-align:center}
+html.gl.typing,html.gl:has(dialog[open]){scroll-snap-type:none}
