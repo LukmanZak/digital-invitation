@@ -59,19 +59,26 @@
 <section class="cover" id="cover">
     <div class="eyebrow rv">Wedding invitation</div>
     <h1 class="nm rv">Nida<span>&amp;</span>Lukman</h1>
-    <div class="rv"><img class="icon float" src="asset/new/cutout/couple_wave.webp" alt="Ilustrasi pasangan melambai"></div>
+    <div class="rv"><img decoding="async" class="icon float" src="asset/new/cutout/couple_wave.webp" alt="Ilustrasi pasangan melambai"></div>
     <div class="to rv">Kepada yth.</div>
     <div class="guest rv" id="guestName">Nama Tamu</div>
     <button class="btn rose rv" type="button" id="openBtn">Buka undangan</button>
     <div class="foot">Sabtu, 29 Mei 2027</div>
       </section>
 
+<!-- shown after "Buka undangan" until the guest scrolls (see legacy.js showScrollHint) -->
+<div class="scroll-hint" id="scrollHint" aria-hidden="true">
+  <div class="sh-mouse"><i></i></div>
+  <div class="sh-t">Gulir ke bawah</div>
+  <div class="sh-chev"></div>
+</div>
+
 <!-- every invitation block is an object in the castle: the 3D layer (scene/boards.js) hangs these on poles, doors and walls.
      Without WebGL they simply stack as normal sections. -->
 <div id="board-store">
   <div class="board skin-banner" id="bd-wof"><div class="sec wof">
     <div class="eyebrow rv">The wedding of</div>
-    <div class="hero rv"><img class="icon float" src="asset/new/cutout/couple_arch.webp" alt="Ilustrasi pasangan dalam bingkai eucalyptus"></div>
+    <div class="hero rv"><img decoding="async" class="icon float" src="asset/new/cutout/couple_arch.webp" alt="Ilustrasi pasangan dalam bingkai eucalyptus"></div>
     <h2 class="ttl split">Nida &amp; Lukman</h2>
     <div class="dt rv" role="text" aria-label="Sabtu, 29 Mei 2027">
       <span class="dow">Sabtu</span>
@@ -92,11 +99,11 @@
     <p class="intro rv">Dengan memohon rahmat Allah SWT, kami bermaksud mengundang Bapak/Ibu/Saudara/i pada pernikahan kami.</p>
     <div class="diag">
       <div class="person n rv">
-        <img class="ph" id="imgNida" src="asset/new/cutout/portrait_nida.webp" alt="Potret Nida">
+        <img decoding="async" class="ph" id="imgNida" src="asset/new/cutout/portrait_nida.webp" alt="Potret Nida">
         <b>Nida</b>
       </div>
       <div class="person l rv">
-        <img class="ph" id="imgLukman" src="asset/new/cutout/portrait_lukman.webp" alt="Potret Lukman">
+        <img decoding="async" class="ph" id="imgLukman" src="asset/new/cutout/portrait_lukman.webp" alt="Potret Lukman">
         <b>Lukman</b>
       </div>
     </div>
@@ -104,14 +111,14 @@
 
   <div class="board skin-plaque" id="bd-event"><div class="sec event">
     <div class="evt rv">
-      <img class="evi" src="asset/new/cutout/rings.webp" alt="Ilustrasi cincin">
+      <img decoding="async" class="evi" src="asset/new/cutout/rings.webp" alt="Ilustrasi cincin">
       <h3>Akad Nikah</h3>
       <div class="t" id="akadTime">Sabtu, 29 Mei 2027 · 08.00 WIB</div>
       <div class="p" id="akadPlace">Masjid Al-Ikhlas<br>Jl. Melati Raya No. 255, Jakarta Selatan</div>
       <button class="btn" type="button" data-sheet="venue" data-venue="akad">Google Maps</button>
     </div>
     <div class="evt rv">
-      <img class="evi" src="asset/new/cutout/stage.webp" alt="Ilustrasi pelaminan">
+      <img decoding="async" class="evi" src="asset/new/cutout/stage.webp" alt="Ilustrasi pelaminan">
       <h3>Resepsi</h3>
       <div class="t" id="resepsiTime">13.00 WIB</div>
       <div class="p" id="resepsiPlace">The Grand Ballroom<br>Jl. Melati Raya No. 255, Jakarta Selatan</div>
@@ -131,7 +138,7 @@
   <div class="board skin-plaque" id="bd-gift"><div class="sec gift">
     <div class="eyebrow rv">Wedding Gift</div>
     <h2 class="ttl split">Hadiah Pernikahan</h2>
-    <div class="rv"><img class="gicon float" src="asset/new/cutout/gift.webp" alt="Ilustrasi kado pernikahan"></div>
+    <div class="rv"><img decoding="async" class="gicon float" src="asset/new/cutout/gift.webp" alt="Ilustrasi kado pernikahan"></div>
     <p class="lead rv">Doa restu Anda adalah hadiah terbaik. Bila ingin berbagi kebahagiaan, Anda dapat mengirim amplop digital atau kado pernikahan kepada kami.</p>
 
     <div class="gtabs rv" id="gTabs" data-i="0" role="tablist" aria-label="Pilih jenis hadiah pernikahan">
@@ -216,7 +223,7 @@
     <div class="script rv">Thank you</div>
     <div class="nm rv">Nida &amp; Lukman</div>
     <p class="rv">Terima kasih atas doa dan kehadiran Anda.</p>
-    <img class="half rv" src="asset/new/cutout/couple_half.webp" alt="Ilustrasi pasangan melambai">
+    <img decoding="async" class="half rv" src="asset/new/cutout/couple_half.webp" alt="Ilustrasi pasangan melambai">
   </div></div>
   <div class="board skin-plaque nogl-only" id="bd-nogl"><div class="sec love">
     <h2 class="ttl">Our journey</h2>
@@ -226,10 +233,10 @@
   </div></div>
 </div>
 
-<!-- popups -->
-<dialog id="sheet" aria-labelledby="sheetTitle">
-  <div class="sheet" id="sheetBody"></div>
-</dialog>
+<!-- photo / venue card: slides up at the bottom, not modal (the page keeps scrolling behind it) -->
+<aside class="pcard" id="pcard" role="region" aria-label="Foto" hidden>
+  <div class="sheet" id="pcardBody"></div>
+</aside>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

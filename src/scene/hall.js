@@ -133,15 +133,17 @@ export function buildHall(q) {
     });
   }
 
-  // outer shell (seen from the garden): stone walls, back wall, barrel roof
+  // outer shell (seen from the garden): stone walls, back wall, barrel roof. Kept in its own group: the interior is hidden
+  // while the camera is nowhere near it (see `interior` below), the shell is always drawn.
+  const shell = new THREE.Group();
   {
     const outer = new THREE.Mesh(new THREE.ExtrudeGeometry(wallShape(LEN, WALL_H, doorsX), { depth: 0.8, bevelEnabled: false }), stoneMat(0.25, 0.25));
-    outer.rotation.y = Math.PI / 2; outer.position.set(-W - 0.85, 0, Z0); g.add(outer);
-    const right = new THREE.Mesh(slab(LEN, WALL_H, 0.8), stoneMat(0.25, 0.25)); right.rotation.y = Math.PI / 2; right.position.set(W + 0.45, 0, ZC); g.add(right);
-    const back = new THREE.Mesh(slab(W * 2 + 1.7, WALL_H + W * VAULT, 0.8), stoneMat(0.25, 0.25)); back.position.set(0, 0, Z1 - 0.45); g.add(back);
+    outer.rotation.y = Math.PI / 2; outer.position.set(-W - 0.85, 0, Z0); shell.add(outer);
+    const right = new THREE.Mesh(slab(LEN, WALL_H, 0.8), stoneMat(0.25, 0.25)); right.rotation.y = Math.PI / 2; right.position.set(W + 0.45, 0, ZC); shell.add(right);
+    const back = new THREE.Mesh(slab(W * 2 + 1.7, WALL_H + W * VAULT, 0.8), stoneMat(0.25, 0.25)); back.position.set(0, 0, Z1 - 0.45); shell.add(back);
     const roof = new THREE.Mesh(new THREE.CylinderGeometry(W + 0.95, W + 0.95, LEN + 0.2, 28, 1, true, Math.PI / 2, Math.PI), mat(0x8bb0b8));
-    roof.scale.z = VAULT; roof.rotation.x = Math.PI / 2; roof.position.set(0, WALL_H, ZC); g.add(roof);
-    const ridge = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, LEN + 0.6, 8), gold); ridge.rotation.x = Math.PI / 2; ridge.position.set(0, WALL_H + (W + 0.95) * VAULT, ZC); g.add(ridge);
+    roof.scale.z = VAULT; roof.rotation.x = Math.PI / 2; roof.position.set(0, WALL_H, ZC); shell.add(roof);
+    const ridge = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, LEN + 0.6, 8), gold); ridge.rotation.x = Math.PI / 2; ridge.position.set(0, WALL_H + (W + 0.95) * VAULT, ZC); shell.add(ridge);
   }
   const vault = new THREE.Mesh(new THREE.CylinderGeometry(W, W, LEN, 24, 1, true, Math.PI / 2, Math.PI), new THREE.MeshLambertMaterial({ color: 0xf5ecd9, side: THREE.BackSide }));
   vault.scale.z = VAULT; vault.rotation.x = Math.PI / 2; vault.position.set(0, WALL_H, ZC); g.add(vault);
@@ -227,7 +229,8 @@ export function buildHall(q) {
     for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; const cd = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.34, 6), candle); cd.position.set(Math.cos(a) * 1.7, 0.2, Math.sin(a) * 1.7); const fl = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 5), flame); fl.position.set(cd.position.x, 0.46, cd.position.z); c.add(cd, fl); }
     const ring = []; for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; ring.push([Math.cos(a) * 1.7, 0.02, Math.sin(a) * 1.7]); }
     c.add(flowerCluster(ring, { seed: Math.abs(z), size: 0.16, leafSize: 0.35 }));
-    const pl = new THREE.PointLight(0xffd9a0, 0, 30, 1.6); pl.position.y = -0.5; c.add(pl); lights.push(pl);
+    // real point lights make EVERY lit surface of the whole scene pay per light (a lot on phones): desktop only
+    if (!q.mobile) { const pl = new THREE.PointLight(0xffd9a0, 0, 30, 1.6); pl.position.y = -0.5; c.add(pl); lights.push(pl); }
     return c;
   };
   [-48, -70, -92, -112].forEach((z) => g.add(chand(z)));
@@ -307,8 +310,14 @@ export function buildHall(q) {
   const thanks = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0 * 760 / 1024), new THREE.MeshBasicMaterial({ map: thanksTex, transparent: true, depthWrite: false }));
   thanks.position.set(0, 7.0, Z1 + 9); thanks.renderOrder = 2; g.add(thanks);
 
+  // everything except the outer shell is "interior": index.js hides it until the camera gets near the hall
+  const interior = new THREE.Group();
+  [...g.children].forEach((ch) => interior.add(ch));
+  g.add(shell, interior);
+
   return {
     group: g,
+    interior,
     thanks,
     hotspots,
     lights,

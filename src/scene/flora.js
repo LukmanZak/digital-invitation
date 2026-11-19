@@ -18,7 +18,7 @@ function instanced(geo, material, items) {
   });
   mesh.instanceMatrix.needsUpdate = true;
   if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  mesh.frustumCulled = false;
+  mesh.computeBoundingSphere();      // three culls an InstancedMesh by the sphere around ALL its instances: arches / clusters behind the camera are skipped
   return mesh;
 }
 export { instanced };
@@ -35,7 +35,9 @@ export function flowerCluster(points, { seed = 3, size = 0.22, leafSize = 0.5, b
   g.add(instanced(new THREE.IcosahedronGeometry(1, 0), mat(0xffffff), heads));
   if (leaves) {
     const lv = [];
-    points.forEach((p) => { if (r() < 0.9) lv.push({ p: [p[0] + (r() - .5) * .3, p[1] + (r() - .5) * .3, p[2] + (r() - .5) * .3], s: [leafSize * .45, leafSize * .1, leafSize * (.9 + r() * .8)], r: [r() * 6, r() * 6, r() * 6], c: pick(r, LEAF) }); });
+    // short leaves that lie close to the flower (turned only around the vertical axis, a slight tilt): long randomly rotated
+    // slivers looked like shards sticking out of the arch and the grass
+    points.forEach((p) => { if (r() < 0.85) lv.push({ p: [p[0] + (r() - .5) * .22, p[1] + (r() - .5) * .22, p[2] + (r() - .5) * .22], s: [leafSize * .34, leafSize * .12, leafSize * (.5 + r() * .35)], r: [(r() - .5) * .7, r() * 6, (r() - .5) * .7], c: pick(r, LEAF) }); });
     g.add(instanced(new THREE.SphereGeometry(1, 5, 3), mat(0xffffff), lv));
   }
   return g;
@@ -94,5 +96,5 @@ export function flowerArch(R, colH, { count = 46, seed = 5, thick = 0.34, bloom 
     ...lineOfPoints([-R, 0.2, 0], [-R, colH, 0], Math.round(colH * 3.5), thick, seed + 1),
     ...lineOfPoints([R, 0.2, 0], [R, colH, 0], Math.round(colH * 3.5), thick, seed + 2),
   ];
-  return flowerCluster(pts, { seed, size: 0.26, leafSize: 0.6, ...(bloom ? { bloom } : {}) });
+  return flowerCluster(pts, { seed, size: 0.26, leafSize: 0.42, ...(bloom ? { bloom } : {}) });
 }

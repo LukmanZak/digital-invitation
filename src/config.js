@@ -6,11 +6,11 @@ export const CONFIG = {
   resepsi:{ time: '13.00 WIB', place: 'The Grand Ballroom\nJl. Melati Raya No. 255, Jakarta Selatan', q: 'Jl Melati Raya No 255 Jakarta Selatan' },
   // hadiah (dummy, ganti dengan data asli)
   gift: {
-    bank:    { name: 'BCA',  no: '123 456 7899',   an: 'Nida (contoh)' },
-    ewallet: { name: 'DANA', no: '0812 3456 7890', an: 'Lukman (contoh)' },
+    bank:    { name: 'Mandiri', logo: 'asset/logo/mandiri.svg', no: '123 456 7899',   an: 'Nida (contoh)' },
+    ewallet: { name: "Livin' by Mandiri", no: '0812 3456 7890', an: 'Lukman (contoh)' },
     address: { name: 'Nida & Lukman', phone: '0812 3456 7890', lines: ['Jl. Melati Raya No. 255', 'Jakarta Selatan 12345'], q: 'Jl Melati Raya No 255 Jakarta Selatan' }
   },
-  map:   'asset/new/cutout/map.jpg',
+  map:   'asset/new/cutout/map.webp',
   photos: {
     nida:   'asset/new/cutout/portrait_nida.webp',
     lukman: 'asset/new/cutout/portrait_lukman.webp'
@@ -25,14 +25,15 @@ export const CONFIG = {
   ],
   // galeri (True sight): tambah/ganti foto di sini, jumlahnya bebas (sementara pakai ilustrasi)
   gallery: [
-    { img: 'asset/new/cutout/story_school.webp', pos: '50% 40%', cap: 'Awal cerita', fit: 'cover' },
-    { img: 'asset/new/cutout/story_picnic.webp', pos: '50% 50%', cap: 'Piknik sore', fit: 'cover' },
-    { img: 'asset/cutout/WA0000.webp',           pos: '50% 50%', cap: 'Mendaki bersama', fit: 'cover' },
-    { img: 'asset/cutout/WA0001.webp',           pos: '50% 35%', cap: 'Tepi sungai', fit: 'cover' },
-    { img: 'asset/new/cutout/couple_wave.webp',  pos: '50% 20%', cap: 'Sampai jumpa', fit: 'cover' },
-    { img: 'asset/new/cutout/couple_half.webp',  pos: '50% 30%', cap: 'Bahagia bersama', fit: 'cover' },
-    { img: 'asset/new/cutout/rings.webp',        pos: '50% 50%', cap: 'Cincin kami', fit: 'contain' },
-    { img: 'asset/new/cutout/stage.webp',        pos: '50% 50%', cap: 'Pelaminan', fit: 'contain' }
+    { img: 'asset/new/cutout/story_school.webp',    pos: '50% 40%', cap: 'Awal cerita', fit: 'cover' },
+    { img: 'asset/new/cutout/story_picnic.webp',    pos: '50% 50%', cap: 'Piknik sore', fit: 'cover' },
+    { img: 'asset/new/cutout/gallery_hikers.webp',  pos: '50% 50%', cap: 'Mendaki bersama', fit: 'cover' },
+    { img: 'asset/new/cutout/gallery_trail.webp',   pos: '50% 35%', cap: 'Jalur hijau', fit: 'cover' },
+    { img: 'asset/new/cutout/gallery_noodles.webp', pos: '50% 50%', cap: 'Makan mie ayam', fit: 'cover' },
+    { img: 'asset/new/cutout/couple_wave.webp',     pos: '50% 20%', cap: 'Sampai jumpa', fit: 'cover' },
+    { img: 'asset/new/cutout/couple_half.webp',     pos: '50% 30%', cap: 'Bahagia bersama', fit: 'cover' },
+    { img: 'asset/new/cutout/rings.webp',           pos: '50% 50%', cap: 'Cincin kami', fit: 'contain' },
+    { img: 'asset/new/cutout/stage.webp',           pos: '50% 50%', cap: 'Pelaminan', fit: 'contain' }
   ],
   guestDefault: 'Nama Tamu'
 };

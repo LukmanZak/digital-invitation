@@ -4,7 +4,7 @@ import { clamp, smoothstep } from './scene/util.js';
  * Maps the page scroll position to a fractional "stop" index along the list of anchor elements.
  * s = 2.0 means "exactly at the 3rd anchor", s = 2.5 means "halfway to the 4th".
  * `holds[i]` is the share of the way to a neighbour during which the camera still rests at stop i
- * (0.34 = camera is still for about two thirds of the scroll between two stops, so a board can be read).
+ * (0.12 = a short pause at each stop so a board can be read, then the camera flows on with the scroll).
  */
 export function createRail(ids, holds = []) {
   const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
@@ -15,7 +15,7 @@ export function createRail(ids, holds = []) {
   els.forEach((el) => ro.observe(el));
   window.addEventListener('load', measure);
   window.addEventListener('resize', measure);
-  const hold = (i) => (holds[i] == null ? 0.34 : holds[i]);
+  const hold = (i) => (holds[i] == null ? 0.12 : holds[i]);
 
   return {
     count: els.length,

@@ -61,8 +61,36 @@ window.__CONFIG = __CFG;
     doc.classList.remove('locked');
     var wofTrack = document.getElementById('tr-wof'); if (wofTrack) wofTrack.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'center'});
     showToast('Selamat datang, terima kasih sudah hadir');
-    burstPetals(16);
+    burstPetals(8);
+    showScrollHint();
   });
+
+  /* ---------- scroll hint: after "Buka undangan" until the guest has scrolled on their own ---------- */
+  function showScrollHint(){
+    var h = $('#scrollHint'); if (!h) return;
+    var y0 = 0, done = false, armed = false, idle = null, t = null;
+    function hide(){
+      if (done) return; done = true;
+      clearTimeout(t); clearTimeout(idle); h.classList.remove('show');
+      window.removeEventListener('scroll', onMove); window.removeEventListener('wheel', onUser); window.removeEventListener('touchmove', onUser);
+    }
+    // the automatic scroll to the first board also fires scroll events: show the hint only once the page has come to rest,
+    // then hide it as soon as the guest scrolls by themselves
+    var yStart = window.scrollY;
+    function arm(){ if (done) return; armed = true; y0 = window.scrollY; h.classList.add('show'); }
+    function onMove(){
+      if (armed){ if (Math.abs(window.scrollY - y0) > 60) hide(); return; }
+      // the automatic scroll has begun: arm once it has been still for a moment
+      if (Math.abs(window.scrollY - yStart) > 60){ clearTimeout(idle); idle = setTimeout(arm, 450); }
+    }
+    function onUser(){ hide(); }
+    window.addEventListener('scroll', onMove, {passive: true});
+    window.addEventListener('wheel', onUser, {passive: true});
+    window.addEventListener('touchmove', onUser, {passive: true});
+    // the automatic scroll can start late (the first frames after opening are heavy): wait for it, but not forever
+    idle = setTimeout(arm, 6000);
+    t = setTimeout(hide, 14000);
+  }
 
   /* ---------- toast ---------- */
   var toast = $('#toast'), toastTimer = null;
@@ -81,6 +109,7 @@ window.__CONFIG = __CFG;
   /* ---------- petals ---------- */
   function burstPetals(n){
     if (reduce) return;
+    n = Math.min(n, 8);
     for (var i = 0; i < n; i++){
       var p = document.createElement('span');
       p.className = 'petal';
@@ -152,51 +181,18 @@ window.__CONFIG = __CFG;
     showToast('Tanggal pernikahan disimpan');
   });
 
-  /* ---------- scroll: progress, parallax, velocity ---------- */
+  /* ---------- scroll: progress bar only (nothing else may touch the document while scrolling) ---------- */
   var bar = $('#bar');
-  var pcs = $$('.pc');
-  var sides = $$('.side');
-  var lastY = window.scrollY, vel = 0, ticking = false;
+  var ticking = false;
 
   function frame(){
     ticking = false;
-    var y = window.scrollY;
     var max = document.documentElement.scrollHeight - window.innerHeight;
-    bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, Math.max(0, y / max)) : 0) + ')';
-
-    // velocity -> botanicals lean a little with the scroll, then settle
-    var dy = y - lastY; lastY = y;
-    vel = vel * 0.85 + dy * 0.15;
-    doc.style.setProperty('--vel', Math.max(-8, Math.min(8, vel * 0.12)).toFixed(2));
-
-    // each botanical drifts vertically at its own speed (parallax)
-    var vh = window.innerHeight;
-    pcs.forEach(function(p){
-      var host = p.parentElement.parentElement;
-      var r = host.getBoundingClientRect();
-      var mid = r.top + r.height / 2 - vh / 2;
-      var sp = parseFloat(p.dataset.speed || '0.1');
-      p.style.setProperty('--py', (-mid * sp).toFixed(1) + 'px');
-    });
-
-    // desktop side decor: scroll parallax
-    sides.forEach(function(s, i){
-      s.style.setProperty('--my', (y * (0.05 + i * 0.02) * (i % 2 ? -1 : 1)).toFixed(1) + 'px');
-    });
-
+    bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0) + ')';
   }
   function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(frame); } }
   window.addEventListener('scroll', onScroll, {passive: true});
   window.addEventListener('resize', onScroll);
-
-  // mouse parallax on desktop side decor
-  if (!reduce) window.addEventListener('pointermove', function(e){
-    var nx = (e.clientX / window.innerWidth - 0.5) * 16;
-    var ny = (e.clientY / window.innerHeight - 0.5) * 12;
-    sides.forEach(function(s, i){
-      s.style.setProperty('--mx', (nx * (i % 2 ? -1 : 1)).toFixed(1) + 'px');
-    });
-  }, {passive: true});
 
   frame();
 
@@ -236,30 +232,12 @@ window.__CONFIG = __CFG;
     list.forEach(function(el, i){ setTimeout(function(){ reveal(el); }, reduce ? 0 : i * 90); });
   }
 
-  /* gentle breeze: every ~9s every botanical leans together (anime.js) */
-  function gust(){
-    if (reduce || !hasAnime) return;
-    anime({
-      targets: $$('.bl .sw img'),
-      rotate: [0, 2, -1, 0],
-      duration: 2600,
-      delay: anime.stagger(140),
-      easing: 'easeOutSine'
-    });
-  }
-  if (!reduce && hasAnime){
-    setTimeout(function loop(){ gust(); setTimeout(loop, 9000); }, 3500);
-    // icons float gently (only the .icon / .gicon images, not the reveal wrapper)
-    $$('.icon, .gicon').forEach(function(ic, i){
-      anime({ targets: ic, translateY: [-6,6], direction: 'alternate', loop: true, duration: 2600 + i * 300, easing: 'easeInOutSine' });
-    });
-    // the flowers fade in, then bloom (scale + a small turn) once the cover opens
-    anime({ targets: '.bl .pc', opacity: [0,1], delay: anime.stagger(120, {start: 400}), duration: 900, easing: 'easeOutQuad' });
-    anime({ targets: '.bl .sw img', scale: [0.85,1], rotate: [-6,0], delay: anime.stagger(120, {start: 400}), duration: 1400, easing: 'easeOutElastic(1,.7)' });
-  }
+  /* the floating icons are a CSS animation (.icon.float / .gicon.float in legacy.css), paused while their board is away */
 
-  /* ---------- SHEETS (popups) ---------- */
-  var dlg = $('#sheet'), body = $('#sheetBody'), lastFocus = null;
+  /* ---------- PHOTO / VENUE CARD ----------
+     Not a modal popup: a light card that slides up at the bottom. The page behind it keeps scrolling (no backdrop, no focus trap);
+     the card goes away by itself when the guest scrolls on, and can be swiped left/right to browse the photos. */
+  var dlg = $('#pcard'), body = $('#pcardBody'), lastFocus = null, openY = 0, hideTimer = null;
 
   function closeCloseBtn(){ return '<button class="x" type="button" aria-label="Tutup" data-close>×</button>'; }
 
@@ -273,8 +251,9 @@ window.__CONFIG = __CFG;
           '<span class="navn">' + (data.i + 1) + ' / ' + list.length + '</span>' +
           '<button class="ibtn" type="button" data-nav="1" data-kind="' + type + '" data-i="' + data.i + '" aria-label="Berikutnya"><svg class="ic" aria-hidden="true"><use href="#i-right"/></svg></button></div>';
       }
-      return closeCloseBtn() + '<img class="big" src="' + escapeHtml(src) + '" alt="' + escapeHtml(cap) +
-        '" style="object-position:' + escapeHtml(data.pos || '50% 50%') + ';object-fit:' + (data.fit === 'contain' ? 'contain' : 'cover') + '">' +
+      // the small 512 px copy shows at once; the full picture replaces it when decoded (see openSheet)
+      var thumb = /\.webp$/.test(src) ? src.replace(/\.webp$/, '.s.webp') : src;
+      return closeCloseBtn() + '<img class="big loading" src="' + escapeHtml(thumb) + '" data-full="' + escapeHtml(src) + '" decoding="async" alt="' + escapeHtml(cap) + '">' +
         '<h3>' + escapeHtml(cap) + '</h3>' + (text ? '<p>' + escapeHtml(text) + '</p>' : '') + nav;
     }
     if (type === 'venue'){
@@ -288,35 +267,57 @@ window.__CONFIG = __CFG;
     return '';
   }
 
+  /* the popup shows the small copy first; swap in the full picture once it is downloaded and decoded (no jump, no blank wait) */
+  function upgradeSheetImage(){
+    var im = body.querySelector('img.big[data-full]');
+    if (!im) return;
+    var full = im.getAttribute('data-full');
+    if (im.getAttribute('src') === full){ im.classList.remove('loading'); return; }
+    var pre = new Image(); pre.decoding = 'async';
+    pre.onload = function(){
+      var done = function(){ if (im.isConnected && im.getAttribute('data-full') === full){ im.src = full; im.classList.remove('loading'); } };
+      if (pre.decode) pre.decode().then(done, done); else done();
+    };
+    pre.onerror = function(){ im.classList.remove('loading'); };
+    pre.src = full;
+  }
+
+  function cardOpen(){ return dlg.classList.contains('show'); }
   function openSheet(type, data){
-    lastFocus = document.activeElement;
+    clearTimeout(hideTimer);
+    if (!cardOpen()) lastFocus = document.activeElement;
     body.innerHTML = render(type, data);
-    if (!dlg.open) dlg.showModal();
-    if (hasAnime && !reduce){
-      anime({ targets: dlg, opacity: [0,1], translateY: [24,0], scale: [0.96,1], duration: 480, easing: 'easeOutCubic' });
-      anime({ targets: body.children, opacity: [0,1], translateY: [10,0], delay: anime.stagger(70, {start: 110}), duration: 480, easing: 'easeOutQuad' });
-    }
-    var first = body.querySelector('input,textarea,button,a');
-    if (first) first.focus();
+    upgradeSheetImage();
+    dlg.hidden = false;
+    doc.classList.add('card-open');
+    openY = window.scrollY;
+    requestAnimationFrame(function(){ dlg.classList.add('show'); });
+    dlg.setAttribute('aria-label', (data && data.cap) || (type === 'venue' ? 'Lokasi acara' : 'Foto'));
   }
   function openPhoto(kind, i){
     var list = kind === 'story' ? CONFIG.story : CONFIG.gallery, it = list[i];
     if (it) openSheet(kind === 'story' ? 'story' : 'photo', { img: it.img, pos: it.pos, cap: it.cap, text: it.text, fit: it.fit, i: i });
   }
   function closeSheet(){
-    if (dlg.open) dlg.close();
-    if (lastFocus && lastFocus.focus) lastFocus.focus();
+    if (!cardOpen()) return;
+    dlg.classList.remove('show');
+    doc.classList.remove('card-open');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function(){ if (!cardOpen()){ dlg.hidden = true; body.innerHTML = ''; } }, 380);
+    if (lastFocus && lastFocus.focus && document.activeElement && dlg.contains(document.activeElement)) lastFocus.focus();
+  }
+  function stepPhoto(kind, from, dir){
+    var lst = kind === 'story' ? CONFIG.story : CONFIG.gallery;
+    var ni = (from + dir + lst.length) % lst.length, it = lst[ni];
+    body.innerHTML = render(kind, { img: it.img, pos: it.pos, cap: it.cap, text: it.text, fit: it.fit, i: ni });
+    dlg.setAttribute('aria-label', it.cap);
+    upgradeSheetImage();
   }
 
   // delegated clicks
   document.addEventListener('click', function(e){
     var nv = e.target.closest('[data-nav]');
-    if (nv){
-      var lst = nv.dataset.kind === 'story' ? CONFIG.story : CONFIG.gallery;
-      var ni = (+nv.dataset.i + (+nv.dataset.nav) + lst.length) % lst.length, it = lst[ni];
-      body.innerHTML = render(nv.dataset.kind, { img: it.img, pos: it.pos, cap: it.cap, text: it.text, fit: it.fit, i: ni });
-      return;
-    }
+    if (nv){ stepPhoto(nv.dataset.kind, +nv.dataset.i, +nv.dataset.nav); return; }
     var t = e.target.closest('[data-sheet], [data-copy], [data-close]');
     if (!t) return;
     if (t.hasAttribute('data-close')){ closeSheet(); return; }
@@ -341,9 +342,29 @@ window.__CONFIG = __CFG;
     }
   });
 
-  // close by backdrop click, and Esc via the cancel event
-  dlg.addEventListener('click', function(e){ if (e.target === dlg) closeSheet(); });
-  dlg.addEventListener('cancel', function(e){ e.preventDefault(); closeSheet(); });
+  // the card follows the page: it leaves when the guest scrolls on (more than ~40% of a screen), or with Esc
+  window.addEventListener('scroll', function(){
+    if (cardOpen() && Math.abs(window.scrollY - openY) > window.innerHeight * 0.4) closeSheet();
+  }, {passive: true});
+  document.addEventListener('keydown', function(e){
+    if (!cardOpen()) return;
+    if (e.key === 'Escape') closeSheet();
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+      var b = body.querySelector('[data-nav="' + (e.key === 'ArrowLeft' ? '-1' : '1') + '"]'); if (b) b.click();
+    }
+  });
+  // swipe left / right on the card = previous / next photo
+  (function(){
+    var sx = null, sy = 0;
+    dlg.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; }, {passive: true});
+    dlg.addEventListener('pointerup', function(e){
+      if (sx === null) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+      if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      var b = body.querySelector('[data-nav="' + (dx > 0 ? '-1' : '1') + '"]'); if (b) b.click();
+    }, {passive: true});
+    dlg.addEventListener('pointercancel', function(){ sx = null; }, {passive: true});
+  })();
 
   /* ---------- copy helper (toast tells the truth about the result) ---------- */
   function copyText(txt){
@@ -366,7 +387,10 @@ window.__CONFIG = __CFG;
      ========================================================= */
   (function(){
     var G = CONFIG.gift;
-    $('#bankName').textContent = G.bank.name;
+    if (G.bank.logo){
+      var lg = document.createElement('img'); lg.className = 'bc-logo-img'; lg.src = G.bank.logo; lg.alt = G.bank.name; lg.decoding = 'async';
+      $('#bankName').textContent = ''; $('#bankName').appendChild(lg);
+    } else $('#bankName').textContent = G.bank.name;
     $('#bankNo').textContent = G.bank.no;
     $('#bankAn').textContent = G.bank.an;
     $('#bankCopy').dataset.copy = G.bank.no.replace(/\s/g, '');
@@ -434,11 +458,7 @@ window.__CONFIG = __CFG;
       $('#rokMsg').textContent = att === 'hadir'
         ? 'Terima kasih, ' + name + '. Sampai jumpa di hari bahagia kami' + (n > 1 ? ' (' + n + ' tamu).' : '.')
         : 'Terima kasih sudah memberi kabar, ' + name + '. Doa terbaik dari kami.';
-      if (!silent && hasAnime && !reduce){
-        anime({ targets: rok.querySelector('.big'), scale: [0.4, 1], duration: 900, easing: 'easeOutElastic(1,.6)' });
-        anime({ targets: rok.querySelector('.big path'), strokeDashoffset: [40, 0], duration: 600, delay: 250, easing: 'easeOutCubic' });
-        anime({ targets: [rok.querySelector('p'), rok.querySelector('.ibtn')], opacity: [0,1], translateY: [10,0], delay: anime.stagger(120, {start: 300}), duration: 500, easing: 'easeOutQuad' });
-      }
+      // the pop / check-mark / text entrance are CSS animations on .rok (see legacy.css): nothing to run here
     }
     function showForm(){
       rok.hidden = true; rform.hidden = false;
@@ -466,7 +486,7 @@ window.__CONFIG = __CFG;
       }
       if (rform.hp && rform.hp.value) return;   // honeypot: bots fill hidden fields
       var att = rform.att.value, n = att === 'hadir' ? guests : 0;
-      function finish(){ showDone(name, att, n); burstPetals(16); }
+      function finish(){ showDone(name, att, n); burstPetals(8); }
       function fly(){
         if (hasAnime && !reduce){
           anime({ targets: '#sendIc', translateX: 70, translateY: -70, opacity: 0, duration: 520, easing: 'easeInCubic', complete: finish });
@@ -516,7 +536,9 @@ window.__CONFIG = __CFG;
     var COLORS = ['#e39aa9', '#5b9bb5', '#d9a24a', '#c9707f', '#6f7f62', '#3f7f9a', '#b98424', '#b88a7a'];
     var WISH_KEY = 'wplan_wishes';
     var feed = $('#feed'), live = $('#live'), wCount = $('#wCount');
-    var total = 128, MAXMSG = 7, wIdx = 0, wTimer = null, wView = false;
+    // messages stack from the bottom of a fixed window; only this wrapper and the new bubble are ever animated
+    var feedIn = document.createElement('div'); feedIn.className = 'feed-in'; feed.appendChild(feedIn);
+    var total = 128, MAXMSG = 6, wIdx = 0, wTimer = null, wView = false;
     var real = canSave, lastId = 0, pollTimer = null;
 
     function colorFor(name){
@@ -537,14 +559,14 @@ window.__CONFIG = __CFG;
     }
     function addMsg(name, text, me, seed){
       var el = makeMsg(name, text, me, me ? 0 : Math.floor(Math.random() * 25));
-      feed.appendChild(el);
-      while (feed.children.length > MAXMSG) feed.removeChild(feed.firstChild);
+      feedIn.appendChild(el);
+      while (feedIn.children.length > MAXMSG) feedIn.removeChild(feedIn.firstChild);   // the oldest sits above the visible window
       if (!seed){ total++; wCount.textContent = total; }
-      if (!seed && hasAnime && !reduce){
-        var h = el.offsetHeight;
-        el.style.overflow = 'hidden';
-        anime({ targets: el, height: [0, h], opacity: [0, 1], translateY: [26, 0], duration: 650, easing: 'easeOutCubic',
-          complete: function(){ el.style.height = ''; el.style.overflow = ''; el.style.transform = ''; } });
+      if (!seed && !reduce && feedIn.animate){
+        // FLIP: the list jumped up by one bubble; slide it back down to 0 and fade the new bubble in. One layout read, no per-frame layout.
+        var shift = el.offsetHeight + 10;
+        feedIn.animate([{ transform: 'translateY(' + shift + 'px)' }, { transform: 'translateY(0)' }], { duration: 480, easing: 'cubic-bezier(.22,.8,.3,1)' });
+        el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, easing: 'ease-out' });
       }
     }
     function pollReal(){
@@ -562,7 +584,8 @@ window.__CONFIG = __CFG;
       clearTimeout(wTimer);
       if (real){ if (wView) pollReal(); return; }
       if (reduce || !wView || document.hidden) return;
-      wTimer = setTimeout(function(){ nextDummy(); wSchedule(); }, 2600 + Math.random() * 1600);
+      // calmer pace, and never while the guest is typing a wish
+      wTimer = setTimeout(function(){ if (!doc.classList.contains('typing')) nextDummy(); wSchedule(); }, 4200 + Math.random() * 2200);
     }
 
     // initial feed: dummy first, then this browser's own recent wishes
@@ -582,19 +605,19 @@ window.__CONFIG = __CFG;
     function heartsFrom(btn){
       if (reduce || !hasAnime) return;
       var r = btn.getBoundingClientRect(), hr = live.getBoundingClientRect();
-      for (var i = 0; i < 4; i++){
+      for (var i = 0; i < 2; i++){
         var h = document.createElement('span'); h.className = 'hb';
         h.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg>';
         h.style.left = (r.left - hr.left + r.width / 2 - 8) + 'px';
         h.style.top = (r.top - hr.top + r.height / 2 - 8) + 'px';
         live.appendChild(h);
-        (function(el, k){
-          anime({ targets: el, translateY: -(40 + Math.random() * 40), translateX: (Math.random() - 0.5) * 44, opacity: [1, 0], scale: [0.6, 1.15],
-            duration: 900 + k * 110, easing: 'easeOutQuad', complete: function(){ el.remove(); } });
-        })(h, i);
+        if (!h.animate){ h.remove(); continue; }
+        var dx = (Math.random() - 0.5) * 44, dy = -(40 + Math.random() * 40);
+        h.animate([{ transform: 'translate(0,0) scale(.6)', opacity: 1 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(1.15)', opacity: 0 }],
+          { duration: 900 + i * 140, easing: 'ease-out' }).onfinish = (function(el){ return function(){ el.remove(); }; })(h);
       }
     }
-    feed.addEventListener('click', function(e){
+    feedIn.addEventListener('click', function(e){
       var lk = e.target.closest('.lk'); if (!lk) return;
       var on = !lk.classList.contains('on');
       lk.classList.toggle('on', on); lk.setAttribute('aria-pressed', on ? 'true' : 'false');

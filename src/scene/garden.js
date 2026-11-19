@@ -42,19 +42,20 @@ function drawSign(c, item, i, img) {
   c.fillStyle = '#fdf8ec'; c.beginPath(); c.roundRect(6, 6, SW - 12, SH - 12, 54); c.fill();
   c.strokeStyle = '#e2b04a'; c.lineWidth = 10; c.stroke();
   c.strokeStyle = 'rgba(226,176,74,.45)'; c.lineWidth = 3; c.beginPath(); c.roundRect(26, 26, SW - 52, SH - 52, 40); c.stroke();
-  if (img) drawFit(c, img, 56, 56, SW - 112, 800, item.fit || 'cover', item.pos);
-  else { c.fillStyle = '#f3ead6'; c.beginPath(); c.roundRect(56, 56, SW - 112, 800, 30); c.fill(); }
+  // the picture box is tall (close to the portrait illustrations) so little of the art is cropped
+  if (img) drawFit(c, img, 56, 56, SW - 112, 900, item.fit || 'cover', item.pos);
+  else { c.fillStyle = '#f3ead6'; c.beginPath(); c.roundRect(56, 56, SW - 112, 900, 30); c.fill(); }
   // number badge
   c.fillStyle = '#c9707f'; c.beginPath(); c.arc(130, 130, 52, 0, 7); c.fill();
   c.fillStyle = '#fdf8ec'; c.font = `500 58px ${BODY}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(i + 1), 130, 133);
   // caption + text
-  c.fillStyle = '#2f6178'; let ts = 112; c.font = `${ts}px ${TITLE}`;
-  while (c.measureText(item.cap).width > SW - 150 && ts > 50) { ts -= 4; c.font = `${ts}px ${TITLE}`; }
-  c.fillText(item.cap, SW / 2, 960);
-  c.fillStyle = '#e2b04a'; c.fillRect(SW / 2 - 90, 1030, 180, 5);
-  c.fillStyle = '#4d5646'; c.font = `50px ${BODY}`;
-  const lines = wrap(c, item.text || '', SW - 190);
-  lines.slice(0, 4).forEach((ln, k) => c.fillText(ln, SW / 2, 1110 + k * 72));
+  c.fillStyle = '#2f6178'; let ts = 100; c.font = `${ts}px ${TITLE}`;
+  while (c.measureText(item.cap).width > SW - 230 && ts > 50) { ts -= 4; c.font = `${ts}px ${TITLE}`; }   // keeps a clear margin to the frame
+  c.fillText(item.cap, SW / 2, 1045);
+  c.fillStyle = '#e2b04a'; c.fillRect(SW / 2 - 90, 1112, 180, 5);
+  c.fillStyle = '#4d5646'; c.font = `48px ${BODY}`;
+  const lines = wrap(c, item.text || '', SW - 220);
+  lines.slice(0, 4).forEach((ln, k) => c.fillText(ln, SW / 2, 1185 + k * 66));
 }
 
 function signMesh(item, i) {

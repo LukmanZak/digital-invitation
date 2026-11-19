@@ -12,7 +12,7 @@
   color-scheme:light;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%}
 html.locked,html.locked body{overflow:hidden}
 body{font-family:Roboto,system-ui,sans-serif;color:var(--ink);background:var(--desk);min-height:100vh;overflow-x:hidden}
 button,input,textarea{font-family:inherit}
@@ -81,7 +81,7 @@ img{display:block;max-width:100%}
 /* 2. The wedding of */
 .wof{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:150px 26px 96px}
 .wof .hero{width:min(260px,68vw);margin:18px auto 22px}
-.wof .hero .icon{width:100%;height:auto;filter:drop-shadow(0 16px 22px rgba(201,112,127,.22))}
+.wof .hero .icon{width:100%;height:auto}
 .wof .ttl{font-size:30px;margin:6px 0 18px}
 .wof .dt{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;width:min(330px,92vw);margin-top:6px}
 .wof .dow,.wof .mon{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--rose-d);white-space:nowrap}
@@ -101,7 +101,7 @@ img[src$="WA0002.png"]{filter:saturate(.8)}
 .greet .intro{font-size:14.5px;line-height:1.7;max-width:320px;margin:0 auto 26px}
 .diag{position:relative;width:min(330px,92vw);height:300px;margin:0 auto}
 .person{position:absolute;display:flex;align-items:center;gap:12px}
-.person .ph{width:132px;height:132px;flex:none;object-fit:cover;filter:drop-shadow(0 14px 18px rgba(201,112,127,.28))}
+.person .ph{width:132px;height:132px;flex:none;object-fit:cover}
 .person b{font-family:var(--title);font-weight:400;font-size:24px;color:var(--rose-d);line-height:1.3}
 .person.n{left:0;top:4px}
 .person.n b{order:2}
@@ -110,7 +110,7 @@ img[src$="WA0002.png"]{filter:saturate(.8)}
 
 /* 5. Akad & resepsi */
 .evt{margin-top:6px}
-.evt .evi{width:78px;height:auto;margin:0 auto 12px;filter:drop-shadow(0 8px 10px rgba(90,80,60,.14))}
+.evt .evi{width:78px;height:auto;margin:0 auto 12px}
 .evt h3{font-family:var(--title);font-weight:400;font-size:26px;color:var(--rose-d);line-height:1.6;margin:0 0 20px}
 .evt .t{font-size:17px;font-weight:500;margin-top:6px}
 .evt .p{font-size:14.5px;line-height:1.6;margin-top:4px}
@@ -203,7 +203,7 @@ img[src$="WA0002.png"]{filter:saturate(.8)}
 
 /* 7. Wedding gift: two icon tabs, a flip card (money) and a parcel label (goods) */
 .gift .ttl{font-size:26px}
-.gift .gicon{width:min(92px,26vw);margin:0 auto 16px;filter:drop-shadow(0 12px 16px rgba(90,80,60,.16))}
+.gift .gicon{width:min(92px,26vw);margin:0 auto 16px}
 .gift .lead{margin-bottom:26px}
 .gtabs{position:relative;display:flex;gap:10px;max-width:320px;margin:0 auto 26px;padding:6px;border-radius:999px;background:rgba(255,255,255,.72);box-shadow:0 10px 24px -8px rgba(201,112,127,.3)}
 .gtab{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:68px;padding:10px 6px;border:0;border-radius:999px;background:none;color:var(--sage-dd);font-size:12.5px;font-weight:500;line-height:1.2;cursor:pointer;transition:color .3s}
@@ -213,17 +213,19 @@ img[src$="WA0002.png"]{filter:saturate(.8)}
 .gtabs[data-i="1"] .gpill{transform:translateX(calc(100% + 10px))}
 .gpanel{max-width:340px;margin:0 auto}
 .gpanel[hidden]{display:none}
-.bcard{position:relative;width:100%;aspect-ratio:1.586;perspective:900px;cursor:pointer;text-align:left;animation:cfloat 5s ease-in-out infinite}
-@keyframes cfloat{50%{translate:0 -6px}}
-.bc-in{position:absolute;inset:0;transition:transform .8s cubic-bezier(.3,1.2,.4,1);transform-style:preserve-3d}
-.bcard.flip .bc-in{transform:rotateY(180deg)}
-.bc-face{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:20px 22px;border-radius:22px;color:#fff;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.bc-front{background:linear-gradient(135deg,#7bb3c9,#2f6178);box-shadow:0 20px 30px -12px rgba(47,97,120,.6)}
-.bc-back{background:linear-gradient(135deg,#f0b0bd,#e0a15a 60%,#c9707f);box-shadow:0 20px 30px -12px rgba(201,112,127,.6);transform:rotateY(180deg)}
-.bc-face::after{content:"";position:absolute;top:-40%;bottom:-40%;left:-60%;width:36%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:rotate(12deg);animation:shine 5.5s ease-in-out infinite;pointer-events:none}
-@keyframes shine{0%,62%{left:-60%}100%{left:130%}}
+/* bank card: a flat flip (scaleX squash) instead of rotateY: preserve-3d inside the 3D board mirrored the back face and costs a lot on phones */
+.bcard{position:relative;width:100%;aspect-ratio:1.586;cursor:pointer;text-align:left}
+.bc-in{position:absolute;inset:0}
+.bc-face{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:20px 22px;border-radius:22px;color:#fff;overflow:hidden;transition:transform .32s ease,opacity .18s ease}
+.bc-front{background:linear-gradient(135deg,#003D79,#00539F);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.bc-back{background:linear-gradient(135deg,#00539F,#003D79 60%,#FCB017);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);transform:scaleX(0);opacity:0;pointer-events:none}
+.bcard.flip .bc-front{transform:scaleX(0);opacity:0;pointer-events:none}
+.bcard.flip .bc-back{transform:none;opacity:1;pointer-events:auto;transition-delay:.18s}
+.bc-face::after{content:"";position:absolute;top:-40%;bottom:-40%;left:0;width:36%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.34),transparent);transform:translateX(-200%) rotate(12deg);animation:shine 6s ease-in-out infinite;pointer-events:none}
+@keyframes shine{0%,62%{transform:translateX(-200%) rotate(12deg)}100%{transform:translateX(420%) rotate(12deg)}}
 .bc-top{display:flex;justify-content:space-between;align-items:center}
 .bc-logo{font-size:22px;font-weight:700;letter-spacing:.06em}
+.bc-logo-img{display:block;height:30px;width:auto;background:#fff;padding:5px 9px;border-radius:9px}
 .chip{width:40px;height:30px;border-radius:7px;background:linear-gradient(135deg,#f3dba0,#d9a24a);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 .bc-no{font-size:25px;font-weight:500;letter-spacing:.1em;font-variant-numeric:tabular-nums;text-shadow:0 2px 4px rgba(0,0,0,.18)}
 .bc-bot{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
@@ -258,7 +260,7 @@ img[src$="WA0002.png"]{filter:saturate(.8)}
 
 /* 7b. RSVP + live wishes */
 .rsvp .ttl.w{margin-top:64px}
-.rcard{position:relative;max-width:340px;margin:0 auto;padding:26px 20px 26px;border-radius:30px;background:rgba(255,255,255,.74);box-shadow:0 20px 40px -16px rgba(201,112,127,.4)}
+.rcard{position:relative;max-width:340px;margin:0 auto;padding:26px 20px 26px;border-radius:30px;background:rgba(255,255,255,.78);box-shadow:inset 0 0 0 1.5px rgba(238,170,183,.45)}
 .nmf{position:relative}
 .nmf .ic{position:absolute;left:18px;top:50%;translate:0 -50%;width:20px;height:20px;color:var(--rose-d);pointer-events:none}
 .nmf input{display:block;width:100%;height:52px;border:0;border-radius:999px;background:#fff;padding:0 18px 0 48px;font:400 16px Roboto,sans-serif;color:var(--ink);outline:none;box-shadow:inset 0 0 0 1.5px rgba(201,205,184,.95);transition:box-shadow .2s}
@@ -273,29 +275,42 @@ img[src$="WA0002.png"]{filter:saturate(.8)}
 .att input:checked + .ring .ic path{animation:draw .5s ease .05s both}
 .att input:focus-visible + .ring{outline:2px solid var(--ochre);outline-offset:4px}
 @keyframes draw{from{stroke-dasharray:40;stroke-dashoffset:40}to{stroke-dasharray:40;stroke-dashoffset:0}}
-.gst{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:20px;max-height:60px;overflow:hidden;transition:max-height .4s ease,opacity .3s ease,margin .4s ease}
-.gst.off{max-height:0;opacity:0;margin-top:0}
+/* the guest counter keeps its space when hidden: a board that changes height forces the 3D layer to rebuild */
+.gst{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:20px;height:60px;transition:opacity .25s ease}
+.gst.off{opacity:0;visibility:hidden;pointer-events:none}
 .gst .ibtn{width:40px;height:40px}
 .gcount{display:flex;align-items:center;justify-content:center;gap:8px;min-width:76px;font-size:22px;font-weight:500;color:var(--sage-dd);font-variant-numeric:tabular-nums}
 .gcount .ic{color:var(--rose-d)}
 .sendb{display:flex;align-items:center;justify-content:center;width:64px;height:64px;margin:24px auto 0;border:0;border-radius:50%;background:linear-gradient(135deg,#eeaab7,#d4808f);color:#fff;cursor:pointer;box-shadow:0 6px 0 var(--rose-d),0 16px 22px rgba(201,112,127,.35);transition:transform .12s,box-shadow .12s}
 .sendb:active{transform:translateY(4px);box-shadow:0 2px 0 var(--rose-d),0 6px 10px rgba(201,112,127,.3)}
 .sendb .ic{width:28px;height:28px}
+/* form and thank-you share ONE grid cell: swapping them never changes the card height (the 3D layer would rebuild the board) */
+.rcard{display:grid}
+.rcard > .rform,.rcard > .rok{grid-area:1/1;align-self:center;transition:opacity .3s ease,visibility .3s}
+.rcard > [hidden]{display:block !important;visibility:hidden;opacity:0;pointer-events:none}
 .rok{text-align:center;padding:6px 0 2px}
-.rok .big{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:var(--rose);color:#fff;box-shadow:0 6px 0 var(--rose-d),0 16px 24px rgba(201,112,127,.3)}
+.rok:not([hidden]) .big{animation:rokPop .5s cubic-bezier(.3,1.4,.5,1) both}
+.rok:not([hidden]) .big path{animation:draw .55s ease .2s both}
+.rok:not([hidden]) p,.rok:not([hidden]) .ibtn{animation:rokUp .45s ease .3s both}
+@keyframes rokPop{from{transform:scale(.5);opacity:0}to{transform:none;opacity:1}}
+@keyframes rokUp{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.rok .big{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:var(--rose);color:#fff;box-shadow:0 6px 0 var(--rose-d)}
 .rok .big .ic{width:42px;height:42px;stroke-width:2.2}
 .rok .big .ic path{stroke-dasharray:40}
 .rok p{font-size:15px;line-height:1.65;max-width:260px;margin:0 auto 16px}
-.live{position:relative;max-width:340px;margin:0 auto;border-radius:30px;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(248,221,226,.75));box-shadow:0 20px 40px -16px rgba(201,112,127,.35);overflow:hidden;text-align:left}
+.live{position:relative;max-width:340px;margin:0 auto;border-radius:30px;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(248,221,226,.75));box-shadow:inset 0 0 0 1.5px rgba(238,170,183,.45);overflow:hidden;text-align:left}
 .live-h{display:flex;align-items:center;gap:8px;padding:16px 20px 4px;font-size:13px;font-weight:500;color:var(--rose-d)}
 .live-h .ic{width:20px;height:20px}
-.feed{height:310px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:0 14px 8px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 38%);mask-image:linear-gradient(180deg,transparent 0,#000 38%)}
+/* fixed-size window; messages stack from the bottom inside .feed-in. A new message only animates transform/opacity
+   (no height animation), so nothing is laid out per frame inside the 3D layer. */
+.feed{position:relative;height:310px;overflow:hidden;contain:layout paint;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 38%);mask-image:linear-gradient(180deg,transparent 0,#000 38%)}
+.feed-in{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:10px;padding:0 14px 8px}
 .msg{display:flex;align-items:flex-start;gap:10px;flex:none}
 .av{width:36px;height:36px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:500;color:#fff;background:var(--c,var(--rose))}
-.mb{flex:1;min-width:0;padding:8px 12px 10px;border-radius:4px 16px 16px 16px;background:rgba(255,255,255,.9);box-shadow:0 2px 6px rgba(90,80,60,.08)}
+.mb{flex:1;min-width:0;padding:8px 12px 10px;border-radius:4px 16px 16px 16px;background:rgba(255,255,255,.92);box-shadow:inset 0 0 0 1px rgba(201,205,184,.55)}
 .mb b{display:block;font-size:12.5px;font-weight:500;line-height:1.4;color:var(--rose-d)}
 .mb p{font-size:13.5px;line-height:1.45;color:var(--ink);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.msg.me .mb{box-shadow:inset 0 0 0 1.5px var(--rose),0 2px 8px rgba(201,112,127,.22)}
+.msg.me .mb{box-shadow:inset 0 0 0 1.5px var(--rose)}
 .lk{flex:none;align-self:center;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:36px;padding:4px;border:0;background:none;color:#a9a9a0;font-size:11px;line-height:1.2;cursor:pointer}
 .lk .ic{width:20px;height:20px;transition:color .2s,fill .2s}
 .lk.on{color:var(--rose-d)}
@@ -333,7 +348,7 @@ img[src$="WA0002.png"]{filter:saturate(.8)}
 .thanks .script{font-family:var(--title);font-weight:400;font-size:38px;color:var(--rose-d);line-height:1.6;margin-bottom:30px}
 .thanks .nm{font-family:var(--title);font-weight:400;font-size:28px;line-height:1.6;color:var(--sage-dd);margin:0 0 14px}
 .thanks p{font-size:15px;line-height:1.7;max-width:300px;margin:0 auto}
-.thanks .half{width:min(300px,78vw);height:auto;margin:22px auto 0;filter:drop-shadow(0 -6px 14px rgba(90,80,60,.08))}
+.thanks .half{width:min(300px,78vw);height:auto;margin:22px auto 0}
 
 /* ---------- decor for the desktop side (outside the column) ---------- */
 .side{position:fixed;pointer-events:none;z-index:0;display:none;transform:translate3d(var(--mx),var(--my),0);opacity:.9}
@@ -345,15 +360,29 @@ img[src$="WA0002.png"]{filter:saturate(.8)}
 @media (min-width:900px){ .side{display:block} }
 @media (max-width:360px){ .jr{zoom:.9} }
 
-/* ---------- sheets (dialog popups) ---------- */
-dialog{border:0;padding:0;background:var(--cream);color:var(--ink);width:min(92vw,400px);max-height:86vh;border-radius:26px;box-shadow:0 30px 60px rgba(40,30,20,.3);overflow:hidden}
-dialog::backdrop{background:rgba(40,40,30,.42)}
-.sheet{position:relative;padding:34px 24px 26px;text-align:center;max-height:86vh;overflow:auto}
-.sheet .x{position:absolute;top:10px;right:10px;width:44px;height:44px;border:0;background:rgba(255,255,255,.85);border-radius:50%;cursor:pointer;font-size:20px;color:var(--ink)}
-.sheet h3{font-family:var(--title);font-weight:400;font-size:28px;color:var(--teal-d);line-height:1.5;margin-bottom:14px}
-.sheet p{font-size:14.5px;line-height:1.6}
-.sheet img.big{width:100%;border-radius:16px;margin:4px 0 12px;background:#f3ead6;aspect-ratio:1/1;object-fit:cover}
-.sheet img.big.map{aspect-ratio:auto;height:280px;object-fit:cover;object-position:50% 45%}
+/* ---------- photo / venue card (slides up from the bottom; no backdrop, no blur: cheap on phones) ---------- */
+.pcard{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:30;width:min(94vw,380px);max-height:calc(100svh - 24px);overflow:hidden;
+  border-radius:24px;background:var(--cream);color:var(--ink);box-shadow:inset 0 0 0 1.5px rgba(217,162,74,.7),0 6px 18px rgba(40,30,20,.2);
+  transform:translate(-50%,calc(100% + 24px));opacity:0;visibility:hidden;touch-action:pan-y;
+  transition:transform .38s cubic-bezier(.22,.8,.3,1),opacity .25s ease,visibility 0s linear .38s}
+.pcard.show{transform:translate(-50%,0);opacity:1;visibility:visible;transition-delay:0s}
+.pcard[hidden]{display:block !important}
+.pcard:not(.show){pointer-events:none}
+.pcard .sheet{padding:14px 18px 14px;max-height:calc(100svh - 24px);overflow:auto;overscroll-behavior:contain}
+.sheet{position:relative;text-align:center}
+.sheet .x{position:absolute;top:8px;right:8px;z-index:2;width:40px;height:40px;border:0;background:rgba(255,255,255,.9);border-radius:50%;cursor:pointer;font-size:20px;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(201,205,184,.8)}
+.sheet h3{font-family:var(--title);font-weight:400;font-size:24px;color:var(--teal-d);line-height:1.4;margin:0 0 6px}
+.sheet p{font-size:14px;line-height:1.55}
+/* the whole picture is always shown (illustrations used to be cropped: heads and hands were cut off) */
+/* while the card is open the toast moves to the top so the two never overlap */
+html.card-open #toast{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px));transform:translate(-50%,-160%)}
+html.card-open #toast.show{transform:translate(-50%,0)}
+html.card-open .scroll-hint{opacity:0;visibility:hidden}
+.sheet img.big{display:block;width:100%;height:auto;max-height:min(34svh,320px);border-radius:16px;margin:0 0 10px;background:#f3ead6;object-fit:contain;transition:opacity .25s ease}
+.sheet img.big.loading{opacity:.82}
+.sheet img.big.map{aspect-ratio:auto;height:min(30svh,220px);object-fit:cover;object-position:50% 45%}
+.sheet .actions.nav{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:10px}
+.sheet .actions{margin-top:12px}
 .sheet .bignum{font-size:22px;font-weight:500;letter-spacing:.04em;margin:8px 0}
 .sheet .actions{display:grid;gap:10px;margin-top:16px}
 .wf{display:grid;gap:12px;text-align:left;margin-top:14px}
@@ -368,12 +397,17 @@ dialog::backdrop{background:rgba(40,40,30,.42)}
 #toast button{background:none;border:0;color:var(--cream);opacity:.7;cursor:pointer;font-size:18px;min-width:32px;min-height:32px}
 
 /* petals */
-.petal{position:fixed;top:-30px;width:12px;height:17px;border-radius:100% 0 100% 0;background:var(--blush);opacity:.7;pointer-events:none;z-index:40;animation:fall linear forwards}
+.petal{position:fixed;top:-30px;width:12px;height:17px;border-radius:100% 0 100% 0;background:var(--blush);opacity:.7;pointer-events:none;z-index:40;animation:fall linear forwards;will-change:transform}
+/* floating illustrations: compositor-only animation, paused while their board is out of view */
+.icon.float,.gicon.float{animation:bob 3s ease-in-out infinite alternate;will-change:transform}
+.board:not(.is-active) .float{animation-play-state:paused}
+@keyframes bob{from{transform:translateY(-6px)}to{transform:translateY(6px)}}
 @keyframes fall{to{transform:translate(40px,110vh) rotate(540deg)}}
 
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  .sw,.petal,.jr-av-in,.jr-node::after,.jr-start,.bcard,.bc-face::after,.pkg-box.open .lid{animation:none !important}
+  .rok:not([hidden]) .big,.rok:not([hidden]) .big path,.rok:not([hidden]) p,.rok:not([hidden]) .ibtn,
+  .icon.float,.gicon.float,.sw,.petal,.jr-av-in,.jr-node::after,.jr-start,.bcard,.bc-face::after,.pkg-box.open .lid{animation:none !important}
   .bc-in,.gpill,.att .ring,.gst,.jr-dot,.jr-node{transition:none}
   .js .rv:not(.in){opacity:1}
   .js .ttl:not(.in) .ch{opacity:1}

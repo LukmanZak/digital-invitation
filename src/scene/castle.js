@@ -146,11 +146,12 @@ export function buildCastle(q) {
   nm.position.set(0, 10.4, 1.56); g.add(nm);
 
   // floral dressing of the gate: arch, columns, plus watercolor garlands and flowers
-  const ga = flowerArch(4.45, 4, { count: q.low ? 34 : 54, seed: 21 }); ga.position.set(0, 0, 1.7); g.add(ga);
+  // the flower arch hugs the opening (columns at x = +-4.3, between the opening edge and the towers at |x| >= 4.2 + their curve)
+  const ga = flowerArch(4.3, 4, { count: q.low ? 30 : 46, seed: 21, thick: 0.26 }); ga.position.set(0, 0, 1.85); g.add(ga);
   for (const sx of [-1, 1]) {
-    const gar = cutoutPlane('/asset/new/cutout/garland.webp', 4.6, 4.6);
-    gar.position.set(sx * 5.2, 8.1, 1.58); gar.scale.x = sx; g.add(gar);
-    for (const [f, w, h, x, z] of [['WA0006', 2.8, 2.8, 6.2, 3.2], ['WA0005', 1.6, 3.3, 8.6, 3.4], ['WA0002', 1.4, 2.6, 5.4, 2.8], ['WA0007', 2, 2.8, 10.4, 3.0]]) {
+    // (the watercolor garlands at the plaque ends were mostly buried in the towers: removed so the facade reads clean)
+    // watercolor flowers at the foot of the towers; z is pushed out so none of them cuts into the round tower body
+    for (const [f, w, h, x, z] of [['WA0006', 2.8, 2.8, 6.2, 4.3], ['WA0005', 1.6, 3.3, 8.8, 4.5], ['WA0002', 1.4, 2.6, 5.4, 3.8], ['WA0007', 2, 2.8, 10.6, 4.0]]) {
       for (const ry of [0, Math.PI / 2.2]) { const m = cutoutPlane(`/asset/cutout/${f}.webp`, w, h); m.position.set(sx * x, 0, z); m.rotation.y = ry * sx; g.add(m); }
     }
   }

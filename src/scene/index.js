@@ -20,7 +20,7 @@ function insideness(p) {
 }
 
 export function createScene(canvas, quality, hooks = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !quality.low, alpha: true, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !quality.mobile, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(quality.dpr);
   renderer.setClearColor(0x000000, 0);                 // transparent: the HTML boards show through the "holes"
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -74,17 +74,18 @@ export function createScene(canvas, quality, hooks = {}) {
   boards.relayout();
   boards.items.forEach((it) => { it.css.visible = false; });
 
-  /** s: fractional stop index; pointer: -1..1 each axis (subtle parallax). */
-  function render(s, t, pointer) {
+  /** s: fractional stop index. The camera follows the scroll curve only: no pointer parallax, so it stays steady. */
+  function render(s, t) {
     state.s = s;
     const u = Math.min(1, Math.max(0, s / N));
     posCurve.getPoint(u, tmpP); lookCurve.getPoint(u, tmpL);
-    tmpP.x += pointer.x * 0.3 * motion; tmpP.y += pointer.y * 0.15 * motion;
-    tmpL.x += pointer.x * 0.7 * motion; tmpL.y += pointer.y * 0.4 * motion;
     camera.position.copy(tmpP); camera.lookAt(tmpL);
     camera.updateMatrixWorld();
 
     state.inside = insideness(tmpP);
+    // the hall interior (hundreds of draw calls) only exists for the camera once it is at the hall door or beyond;
+    // before that the door is shut and walls hide it anyway
+    hall.interior.visible = tmpP.z < -18 || state.door > 0.02;
     state.gate = smoothstep(I_BISM + 0.1, I_BISM + 0.9, s);
     state.door = smoothstep(I_GREET + 0.3, I_DOOR, s);
     const k = state.inside;
@@ -110,7 +111,7 @@ export function createScene(canvas, quality, hooks = {}) {
     const r = canvas.getBoundingClientRect();
     ndc.set(((clientX - r.left) / r.width) * 2 - 1, -(((clientY - r.top) / r.height) * 2 - 1));
     ray.setFromCamera(ndc, camera);
-    const hit = ray.intersectObjects(hotspots, false)[0];
+    const hit = ray.intersectObjects(hotspots, false).find((h) => { let o = h.object; while (o) { if (!o.visible) return false; o = o.parent; } return true; });
     return hit && hit.distance < 22 ? hit.object.userData : null;
   }
 

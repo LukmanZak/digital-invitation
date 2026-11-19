@@ -49,7 +49,9 @@ export function createBoards({ onEnter, onLeave } = {}) {
     const item = { id, def, el, css, hole, holeM, mount, stop, h: 1, weight: 0, active: false, built: false };
     items.push(item);
     // content that changes height (RSVP -> thank-you message, a new wish, fonts arriving) resizes the hole with it
-    new ResizeObserver(() => layout(item)).observe(el);
+    // one rebuild per frame at most, however many times the HTML resizes in that frame
+    let queued = false;
+    new ResizeObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; layout(item); }); }).observe(el);
   }
 
   /** Measure the HTML (after fonts/images) and (re)build the hole and mounts to match. */
@@ -60,6 +62,7 @@ export function createBoards({ onEnter, onLeave } = {}) {
     if (Math.abs(hw - it.h) < 0.02 && it.built) return;
     it.h = hw; it.built = true;
     it.hole.scale.set(w * 0.992, hw * 0.992, 1);   // a hair smaller than the HTML so no backdrop shows at the edges
+    it.mount.children.forEach((c) => { if (c.geometry) c.geometry.dispose(); });   // shared materials stay; only the old geometries go
     it.mount.clear();
     const m = it.def.mount;
     if (m === 'poles') {

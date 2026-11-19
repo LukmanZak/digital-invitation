@@ -16,9 +16,11 @@ function hideLoader() { loader.classList.add('done'); setTimeout(() => loader.re
 
 function detectQuality() {
   const mem = navigator.deviceMemory || 4, cores = navigator.hardwareConcurrency || 4;
-  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const coarse = window.matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('mobile');   // ?mobile = test the phone profile on a desktop
   const low = mem <= 2 || (cores <= 4 && coarse && window.devicePixelRatio < 2);
-  return { low, dpr: Math.min(window.devicePixelRatio || 1, low ? 1 : (coarse ? 1.5 : 2)), particles: reduce ? 0 : (low ? 90 : 220) };
+  // phones / tablets ("coarse" pointer): smaller canvas, no multisampling, no real point lights, fewer particles
+  const mobile = coarse || low;
+  return { low, mobile, dpr: Math.min(window.devicePixelRatio || 1, low ? 1 : (coarse ? 1.25 : 1.5)), particles: reduce ? 0 : (low ? 70 : (coarse ? 110 : 220)) };
 }
 
 /** Without WebGL everything stacks as normal sections and still works. */
@@ -63,8 +65,8 @@ async function boot() {
   let scene;
   try {
     scene = createScene(canvas, quality, {
-      onBoardEnter: (id) => { legacy().activate(id); if (id === 'wish') legacy().wishes(true); },
-      onBoardLeave: (id) => { if (id === 'wish') legacy().wishes(false); },
+      onBoardEnter: (id) => { const b = document.getElementById('bd-' + id); if (b) b.classList.add('is-active'); legacy().activate(id); if (id === 'wish') legacy().wishes(true); },
+      onBoardLeave: (id) => { const b = document.getElementById('bd-' + id); if (b) b.classList.remove('is-active'); if (id === 'wish') legacy().wishes(false); },
     });
   } catch (e) { console.error(e); fallback(); return; }
   scene.setMotion(reduce ? 0 : 1);
@@ -73,7 +75,7 @@ async function boot() {
   // the scroll length: one invisible track per camera stop
   const tracks = document.createElement('main');
   tracks.id = 'tracks';
-  STOPS.forEach((s) => { const t = document.createElement('div'); t.className = 'track'; t.id = 'tr-' + s.id; t.style.height = s.h + 'svh'; if (s.boards || s.snap) { t.dataset.snap = ''; const m = document.createElement('i'); m.className = 'snap-mark'; t.appendChild(m); } tracks.appendChild(t); });
+  STOPS.forEach((s) => { const t = document.createElement('div'); t.className = 'track'; t.id = 'tr-' + s.id; t.style.height = s.h + 'svh'; tracks.appendChild(t); });
   document.body.appendChild(tracks);
 
   const stage = document.getElementById('stage');
@@ -87,18 +89,19 @@ async function boot() {
   };
   resize();
   window.addEventListener('resize', resize);
+  // opening the invitation unlocks the page and a desktop scrollbar appears: the stage gets narrower WITHOUT a window resize
+  // event. Without this the WebGL "holes" and the CSS3D boards end up a few pixels apart (a pale strip at a board's edge).
+  new ResizeObserver(resize).observe(stage);
   document.fonts.ready.then(() => scene.boards.relayout());
 
-  // the keyboard opens when a form field is focused: do not let the page snap away from it
+  // the keyboard opens when a form field is focused: the wishes board pauses its auto comments while typing
   document.addEventListener('focusin', (e) => { if (e.target.closest('input, textarea')) root.classList.add('typing'); });
   document.addEventListener('focusout', () => root.classList.remove('typing'));
 
   const rail = createRail(STOPS.map((s) => 'tr-' + s.id), STOPS.map((s) => s.hold));
-  const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
-  window.addEventListener('pointermove', (e) => { pointer.tx = (e.clientX / window.innerWidth - 0.5) * 2; pointer.ty = -(e.clientY / window.innerHeight - 0.5) * 2; }, { passive: true });
 
   /* tap a frame on the wall; tell taps from scroll drags */
-  const UI = '.board, .cover, dialog, button, a, input, textarea, #toast';
+  const UI = '.board, .cover, .pcard, button, a, input, textarea, #toast';
   let down = null, lastMove = 0;
   window.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; }, { passive: true });
   window.addEventListener('pointerup', (e) => {
@@ -116,20 +119,31 @@ async function boot() {
   const cover = document.getElementById('cover');
   const hinted = new Set();
   let sCur = rail.get(), last = performance.now(), shown = false;
+  // battery / heat: while the guest is reading (no scrolling for a moment) only the ambient motion needs drawing, so 30 fps is plenty
+  let lastScroll = performance.now(), lastDraw = 0;
+  window.addEventListener('scroll', () => { lastScroll = performance.now(); }, { passive: true });
+  let cvPrev = '';
   function tick(now) {
     requestAnimationFrame(tick);
     if (document.hidden) { last = now; return; }
+    if (shown && now - lastScroll > 1200 && Math.abs(rail.get() - sCur) < 0.002 && now - lastDraw < 30) return;
+    lastDraw = now;
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     const target = rail.get();
-    sCur += (target - sCur) * (reduce || window.__snap ? 1 : 1 - Math.exp(-dt * 5));
-    pointer.x += (pointer.tx - pointer.x) * 0.05; pointer.y += (pointer.ty - pointer.y) * 0.05;
-    scene.render(sCur, now / 1000, pointer);
+    // the page scroll is already inertial: only a light follow so the camera never feels like it drags behind
+    sCur += (target - sCur) * (reduce || window.__snap ? 1 : 1 - Math.exp(-dt * 14));
+    if (Math.abs(target - sCur) < 0.0005) sCur = target;
+    scene.render(sCur, now / 1000);
 
     // cover title card: on screen until the camera starts to move
     const cv = 1 - Math.min(1, Math.max(0, (sCur - 0.04) / 0.5));
-    cover.style.opacity = cv.toFixed(3);
-    cover.style.visibility = cv < 0.01 ? 'hidden' : 'visible';
-    cover.style.pointerEvents = cv > 0.6 ? 'auto' : 'none';
+    const cvKey = cv.toFixed(3);
+    if (cvKey !== cvPrev) {
+      cvPrev = cvKey;
+      cover.style.opacity = cvKey;
+      cover.style.visibility = cv < 0.01 ? 'hidden' : 'visible';
+      cover.style.pointerEvents = cv > 0.6 ? 'auto' : 'none';
+    }
 
     // one-time hints at stops where the wall frames are tappable
     const i = Math.round(sCur);
